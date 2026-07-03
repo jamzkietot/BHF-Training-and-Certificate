@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+  <defs>
+    <linearGradient id="bizGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#b8d4a8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#5a8c3d;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="400" height="300" fill="url(#bizGrad)"/>
+  <rect x="60" y="100" width="280" height="120" rx="10" fill="#ffffff" opacity="0.2"/>
+  <circle cx="350" cy="80" r="40" fill="#ffffff" opacity="0.25"/>
+  <text x="200" y="200" font-family="Segoe UI, Arial" font-size="32" font-weight="bold" text-anchor="middle" fill="#ffffff">💼 Business</text>
+</svg>

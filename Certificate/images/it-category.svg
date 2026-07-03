@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500">
+  <rect width="800" height="500" rx="36" fill="#f2f5fb"/>
+  <rect x="140" y="120" width="520" height="260" rx="24" fill="#ffffff"/>
+  <rect x="200" y="175" width="220" height="150" rx="20" fill="#2d3e50"/>
+  <rect x="455" y="175" width="150" height="24" rx="12" fill="#35b4a2"/>
+  <rect x="455" y="221" width="120" height="24" rx="12" fill="#5b76ff"/>
+  <rect x="455" y="267" width="140" height="24" rx="12" fill="#ef8b3d"/>
+  <rect x="230" y="205" width="160" height="90" rx="12" fill="#f2f2f2"/>
+  <path d="M260 245h100" stroke="#2d3e50" stroke-width="12" stroke-linecap="round"/>
+  <text x="400" y="430" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="40" font-weight="700" fill="#2d3e50">Information Technology</text>
+</svg>
