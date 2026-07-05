@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard | BHF Certification Academy</title>
+    <meta name="description" content="Access your enrolled courses, track progress, and view upcoming milestones.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  </head>
+  <body data-page="dashboard">
+    <header class="topbar">
+      <a class="brand" href="index.html">
+        <!-- Consistent BHF circle logo -->
+        <img class="brand-logo" src="bhflogo.jpg" alt="BHF logo" />
+        <span>BHF Certification Academy</span>
+      </a>
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="programs.html">Programs</a>
+        <a href="index.html#verify">Verify</a>
+        <a href="dashboard.html" id="nav-auth-link" class="login-link">Profile</a>
+        <a href="login.html" id="logout-button" class="btn btn-secondary">Logout</a>
+      </nav>
+    </header>
+
+    <main class="dashboard-shell">
+      <div class="page-title dashboard-title">
+        <span class="page-title-eyebrow">🎓 Your Learning Dashboard</span>
+        <h1 id="dashboard-welcome">Welcome back</h1>
+        <p class="dashboard-description">Your certification journey continues here. Track what you've finished, pick up where you left off, and keep an eye on the milestones still ahead.</p>
+        <div class="dashboard-actions">
+          <a class="btn btn-primary" href="programs.html">Explore Programs</a>
+          <a class="btn btn-secondary" href="index.html#verify">Verify a Certificate</a>
+        </div>
+      </div>
+
+      <div class="dashboard-metrics">
+        <button class="dashboard-metric-card" type="button" data-modal="completed">
+          <span class="dashboard-metric-icon">✅</span>
+          <span class="metric-label">Completed</span>
+          <strong id="completed-count">3</strong>
+          <p>Courses successfully finished</p>
+          <span class="dashboard-metric-link">View details →</span>
+        </button>
+        <button class="dashboard-metric-card" type="button" data-modal="in-progress">
+          <span class="dashboard-metric-icon">📘</span>
+          <span class="metric-label">In Progress</span>
+          <strong id="inprogress-count">2</strong>
+          <p>Courses you are currently taking</p>
+          <span class="dashboard-metric-link">View details →</span>
+        </button>
+        <button class="dashboard-metric-card" type="button" data-modal="certifications">
+          <span class="dashboard-metric-icon">🏅</span>
+          <span class="metric-label">Certifications</span>
+          <strong id="certified-count">2</strong>
+          <p>Certificates earned so far</p>
+          <span class="dashboard-metric-link">View details →</span>
+        </button>
+      </div>
+
+      <div id="admin-panel-action" class="admin-cta-card hidden"></div>
+
+      <section class="dashboard-panel-card achievements-panel">
+        <h3>🏆 Your Achievements</h3>
+        <div class="achievements-grid" id="achievements-grid">
+          <!-- Achievement cards are injected by script.js -->
+        </div>
+      </section>
+
+      <section class="feature-strip" aria-label="Quick actions">
+        <a class="feature-card" href="programs.html">
+          <div class="feature-icon">🧭</div>
+          <h3>Continue Learning</h3>
+          <p>Jump back into an in-progress course or start a new program from our full catalog.</p>
+        </a>
+        <a class="feature-card" href="index.html#verify">
+          <div class="feature-icon">🔍</div>
+          <h3>Verify a Certificate</h3>
+          <p>Check the authenticity of any BHF certificate using its unique certificate ID.</p>
+        </a>
+        <a class="feature-card" href="mailto:education@bhf.com">
+          <div class="feature-icon">💬</div>
+          <h3>Get Support</h3>
+          <p>Questions about a course, exam, or certificate? Our team is one email away.</p>
+        </a>
+      </section>
+
+      <div id="dashboard-modal" class="dashboard-modal hidden" role="dialog" aria-modal="true" aria-labelledby="dashboard-modal-title">
+        <div class="dashboard-modal-card">
+          <button id="dashboard-modal-close" class="dashboard-modal-close" type="button" aria-label="Close dialog">×</button>
+          <h3 id="dashboard-modal-title">Details</h3>
+          <div id="dashboard-modal-content"></div>
+        </div>
+      </div>
+
+      <div id="achievement-detail-modal" class="dashboard-modal hidden" role="dialog" aria-modal="true" aria-labelledby="achievement-detail-title">
+        <div class="dashboard-modal-card achievement-detail-card">
+          <button id="achievement-detail-close" class="dashboard-modal-close" type="button" aria-label="Close dialog">×</button>
+          <h3 id="achievement-detail-title">Achievement</h3>
+          <div id="achievement-detail-content"></div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="footer" id="contact">
+      <div>
+        <img class="brand-logo" src="images/bhflogo.jpg" alt="BHF logo" />
+        <p>BHF Group of Companies</p>
+      </div>
+      <div>
+        <h3>Quick Links</h3>
+        <a href="index.html">Home</a>
+        <a href="programs.html">Programs</a>
+        <a href="index.html#verify">Verify Certificate</a>
+      </div>
+      <div>
+        <h3>Contact</h3>
+        <p>education@bhf.com</p>
+        <p>+63 74 442 1000</p>
+      </div>
+    </footer>
+
+    <script type="module" src="script.js"></script>
+    <script>
+      if (typeof updateHeaderAuthLink === 'function') {
+        updateHeaderAuthLink();
+      }
+    </script>
+  </body>
+</html>

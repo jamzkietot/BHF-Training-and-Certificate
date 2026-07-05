@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login | BHF Certification Academy</title>
+    <meta name="description" content="Sign in to your BHF Certification Academy account and continue your certification journey." />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body data-page="login">
+    <div class="auth-shell">
+      <div class="auth-card">
+        <!-- Login Form Side -->
+        <div class="auth-panel">
+          <a class="brand" href="index.html">
+            <img class="brand-logo" src="images/bhflogo.jpg" alt="BHF logo" />
+            <span>BHF Certification Academy</span>
+          </a>
+
+          <div>
+            <span class="page-title-eyebrow">👋 Welcome back</span>
+            <h2>Sign in and keep moving toward your certificate.</h2>
+            <p>Your courses, progress, and exam history are exactly where you left them.</p>
+
+            <form id="login-form" class="auth-form">
+              <div class="form-group">
+                <label for="email">Email Address</label>
+                <input 
+                  id="email" 
+                  type="email" 
+                  placeholder="you@example.com" 
+                  required 
+                  autocomplete="email"
+                />
+              </div>
+              <div class="form-group">
+                <label for="password">Password</label>
+                <input 
+                  id="password" 
+                  type="password" 
+                  placeholder="••••••••" 
+                  required 
+                  autocomplete="current-password"
+                />
+              </div>
+              <button class="btn btn-primary" type="submit">Sign In to Dashboard</button>
+            </form>
+
+            <div id="login-banner" class="auth-alert" aria-live="polite"></div>
+            <p id="login-note" class="form-note" aria-live="polite"></p>
+
+            <div class="auth-divider">
+              <span>New to BHF?</span>
+            </div>
+
+            <div class="auth-actions">
+              <a class="btn btn-secondary" href="signup.html">Create Your Free Account</a>
+            </div>
+
+            <div class="auth-links">
+              <a href="index.html">← Back to Home</a>
+              <a href="programs.html">Browse Programs</a>
+            </div>
+          </div>
+
+          <p class="form-note small">By signing in, you agree to our terms of service and privacy policy.</p>
+        </div>
+
+        <!-- Hero / Info Side -->
+        <div class="auth-panel hero-panel">
+          <div>
+            <p class="eyebrow">✓ Secure & Verified</p>
+            <h2>A credential that actually <span class="headline-gradient">opens doors.</span></h2>
+            <p class="hero-subtitle">Thousands of professionals are building real, verifiable certifications in hospitality, accounting, IT, and business — on their own schedule.</p>
+            
+            <div class="hero-features">
+              <div class="feature-item">
+                <span class="feature-icon">🎓</span>
+                <div>
+                  <h4>20+ Certifications</h4>
+                  <p>Hospitality, IT, accounting, business & more</p>
+                </div>
+              </div>
+              <div class="feature-item">
+                <span class="feature-icon">⚡</span>
+                <div>
+                  <h4>Self-Paced Learning</h4>
+                  <p>Start, pause, and resume anytime — no fixed class times</p>
+                </div>
+              </div>
+              <div class="feature-item">
+                <span class="feature-icon">📈</span>
+                <div>
+                  <h4>Track Your Progress</h4>
+                  <p>Real-time dashboards keep every module and exam in view</p>
+                </div>
+              </div>
+              <div class="feature-item">
+                <span class="feature-icon">✅</span>
+                <div>
+                  <h4>Verified Credentials</h4>
+                  <p>Shareable certificates employers can verify online</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="hero-footer">
+            <p>Trusted by professionals worldwide</p>
+            <div class="trust-stats">
+              <div><strong>20+</strong> Programs</div>
+              <div><strong>5</strong> Industries</div>
+              <div><strong>90%</strong> Passing Score</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="script.js"></script>
+  </body>
+</html>

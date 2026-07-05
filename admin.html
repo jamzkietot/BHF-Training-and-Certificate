@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Panel | BHF Certification Academy</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body data-page="admin">
+    <header class="topbar">
+      <a class="brand" href="index.html">
+        <img class="brand-logo" src="images/bhflogo.jpg" alt="BHF logo" />
+        <span>BHF Certification Academy</span>
+      </a>
+      <nav class="nav-links">
+        <a href="dashboard.html">Dashboard</a>
+        <a href="programs.html">Programs</a>
+        <a href="add-course.html">Add Course</a>
+        <a href="manage-courses.html">Manage Courses</a>
+        <a href="index.html#verify">Verify</a>
+        <a href="login.html" id="nav-auth-link" class="login-link">Login</a>
+        <a href="login.html" id="logout-button">Logout</a>
+      </nav>
+    </header>
+
+    <main class="page-shell admin-shell">
+      <h1>Admin Content Editor</h1>
+      <p>Use this panel to update page text or sections instantly across the website.</p>
+      <div class="admin-actions">
+        <a class="btn btn-secondary" href="dashboard.html">Back to Dashboard</a>
+        <a class="btn btn-primary" href="add-course.html">Add Course</a>
+        <a class="btn btn-secondary" href="manage-courses.html">Manage Courses</a>
+        <button id="bhf-admin-edit-page-button" class="bhf-admin-edit-page-button">Edit Mode</button>
+      </div>
+
+      <section class="admin-panel">
+        <form id="admin-form">
+          <div class="form-row">
+            <label for="admin-page">Page</label>
+            <select id="admin-page">
+              <option value="home">Home</option>
+              <option value="programs">Programs</option>
+              <option value="login">Login</option>
+              <option value="signup">Signup</option>
+              <option value="dashboard">Dashboard</option>
+              <option value="admin">Admin</option>
+              <option value="course-detail">Course Detail</option>
+              <option value="verify">Certificate Verify</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <label for="admin-selector">CSS selector</label>
+            <input id="admin-selector" type="text" placeholder="e.g. .hero-text or #dashboard-welcome" />
+          </div>
+
+          <div class="form-row">
+            <label for="admin-content-type">Content type</label>
+            <select id="admin-content-type">
+              <option value="text">Text</option>
+              <option value="image">Photo URL</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <label for="admin-content">New text or photo URL</label>
+            <textarea id="admin-content" rows="6" placeholder="Enter new page text, or enter an image URL for photo updates."></textarea>
+          </div>
+          <p class="form-note">Admins can update visible page text and photos across the site; navigation menus and page framework are not edited here.</p>
+          <p class="form-note">Available pages: Home, Programs, Login, Signup, Dashboard, Admin, Course Detail, Certificate Verify.</p>
+          <p class="form-note success">Admin access is restricted to <strong>admin@bhf.com</strong>; use this account to save and manage content updates.</p>
+
+          <div class="form-actions">
+            <button id="admin-save" class="btn btn-primary">Save Override</button>
+            <button id="admin-remove" class="btn btn-secondary">Remove Override</button>
+            <button id="admin-clear" class="btn btn-secondary">Clear Page Overrides</button>
+          </div>
+
+          <p id="admin-note" class="form-note"></p>
+        </form>
+
+        <section class="override-list">
+          <h2>Saved Overrides</h2>
+          <div id="admin-overrides"></div>
+        </section>
+
+        <section class="category-manager">
+          <h2>Program Categories</h2>
+          <p class="form-note">Add or remove program categories used when creating courses.</p>
+          <form id="category-form">
+            <div class="form-row">
+              <label for="category-name">New category name</label>
+              <input id="category-name" type="text" placeholder="e.g. Hospitality Management" />
+            </div>
+            <div class="form-actions">
+              <button id="category-add" class="btn btn-primary">Add Category</button>
+            </div>
+            <p id="category-note" class="form-note"></p>
+          </form>
+
+          <div id="category-list" class="override-list">
+            <h3>Existing categories</h3>
+            <div id="category-items"></div>
+          </div>
+        </section>
+
+        <section class="template-editor">
+          <h2>Certificate Template Editor</h2>
+          <p class="form-note">Use these fields to update the certificate layout text shown when learners view their certificate.</p>
+          <form id="template-form">
+            <div class="form-row">
+              <label for="template-title">Certificate title</label>
+              <input id="template-title" type="text" placeholder="Certificate" />
+            </div>
+            <div class="form-row">
+              <label for="template-subtitle">Certificate subtitle</label>
+              <input id="template-subtitle" type="text" placeholder="◆ of Completion ◆" />
+            </div>
+            <div class="form-row">
+              <label for="template-note-text">Certificate note</label>
+              <input id="template-note-text" type="text" placeholder="This certifies that" />
+            </div>
+            <div class="form-row">
+              <label for="template-program-label">Program label</label>
+              <input id="template-program-label" type="text" placeholder="Program Completed" />
+            </div>
+            <div class="form-row">
+              <label for="template-program-meta">Program subtitle</label>
+              <input id="template-program-meta" type="text" placeholder="Online Certification Program" />
+            </div>
+            <div class="form-row">
+              <label for="template-signatory">Authorized signatory</label>
+              <input id="template-signatory" type="text" placeholder="Baguio Home for the Faithful" />
+            </div>
+            <div class="form-actions">
+              <button id="template-save" class="btn btn-primary">Save Template</button>
+              <button id="template-reset" type="button" class="btn btn-secondary">Reset Defaults</button>
+            </div>
+            <p id="template-form-note" class="form-note"></p>
+          </form>
+        </section>
+      </section>
+    </main>
+
+    <script type="module" src="script.js"></script>
+    <script>
+      if (typeof updateHeaderAuthLink === 'function') {
+        updateHeaderAuthLink();
+      }
+    </script>
+  </body>
+</html>
