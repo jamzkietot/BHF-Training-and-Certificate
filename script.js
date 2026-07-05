@@ -3202,18 +3202,18 @@ if (page === "add-course") {
 
     if (savedCourse.modules && savedCourse.modules.length) {
       populateModules(savedCourse.modules);
-    } else if (typeof savedCourse.title === 'string') {
-      // Fall back to generating default modules for the course title
-      populateModules(getModulesFor(savedCourse.title));
     } else {
+      // No auto-generated filler modules — start blank so it's obvious
+      // nothing has actually been written for this course yet.
       populateModules([]);
     }
 
     if (savedCourse.questions && savedCourse.questions.length) {
       populateQuestions(savedCourse.questions);
     } else {
-      // Fall back to the generic exam generator if no saved questions exist
-      populateQuestions(getExamFor(savedCourse.title || 'Course'));
+      // No auto-generated filler questions — start blank so it's obvious
+      // nothing has actually been written for this course yet.
+      populateQuestions([]);
     }
   };
 

@@ -51,7 +51,8 @@
 
         <p class="detail-note">
           This course includes <strong id="overview-module-count">0</strong> learning modules followed by a
-          20-item certification exam. A passing score of <strong>90%</strong> (18/20) is required to earn
+          <strong id="overview-exam-count">0</strong>-item certification exam. A passing score of <strong>90%</strong>
+          (<strong id="overview-pass-count">0</strong>/<span id="overview-exam-count-2">0</span>) is required to earn
           your certificate. You may retake the exam as many times as needed.
         </p>
 
@@ -76,8 +77,8 @@
       <!-- ============ STAGE: EXAM ============ -->
       <section id="stage-exam" class="detail-section" hidden>
         <h2>Certification Exam</h2>
-        <p class="detail-note">
-          Answer all 20 questions, then submit. You need 90% (18/20) to pass.
+        <p class="detail-note" id="exam-intro-note">
+          Answer all questions, then submit. You need 90% to pass.
         </p>
 
         <div id="exam-question-area" class="exam-question-area"></div>
@@ -248,7 +249,7 @@
          courses. Each key matches the `course` query param used
          on programs.html (the course title).
       ========================================================= */
-      const PASS_SCORE = 18; // out of 20 (90%)
+      const PASS_PERCENT = 0.9; // 90% required to pass, scales to however many questions exist
 
       const COURSE_DATA = {
         "Hospitality Management Fundamentals": {
@@ -1533,8 +1534,8 @@
               `Prepare for the certification exam.`,
               `Earn a completion certificate.`
             ],
-            modules: savedCourse.modules && savedCourse.modules.length ? savedCourse.modules : getModulesFor(courseTitle),
-            questions: savedCourse.questions && savedCourse.questions.length ? savedCourse.questions : COURSE_DATA[courseTitle]?.questions || getExamFor(courseTitle)
+            modules: savedCourse.modules && savedCourse.modules.length ? savedCourse.modules : [],
+            questions: savedCourse.questions && savedCourse.questions.length ? savedCourse.questions : (COURSE_DATA[courseTitle]?.questions || [])
           }
         : (COURSE_DATA[courseTitle] || genericCourseData(courseTitle, courseCategory));
       // isAuthored/data get re-checked once Firestore data has loaded (see
@@ -1548,7 +1549,16 @@
       document.getElementById('course-hero-img').src = data.image;
       document.getElementById('course-hero-img').alt = courseTitle;
       document.getElementById('course-description').textContent = data.description;
-      document.getElementById('overview-module-count').textContent = data.modules.length;
+
+      function updateOverviewCounts() {
+        document.getElementById('overview-module-count').textContent = data.modules.length;
+        const examTotal = data.questions.length;
+        const passNeeded = Math.ceil(examTotal * PASS_PERCENT);
+        document.getElementById('overview-exam-count').textContent = examTotal;
+        document.getElementById('overview-exam-count-2').textContent = examTotal;
+        document.getElementById('overview-pass-count').textContent = passNeeded;
+      }
+      updateOverviewCounts();
 
       // Pulled into a function so it can be called again if a saved course
       // arrives after this first render (see below).
@@ -1602,13 +1612,13 @@
         data.outcomes = (refreshedSavedCourse.learning && refreshedSavedCourse.learning.length)
           ? refreshedSavedCourse.learning
           : (refreshedSavedCourse.outcomes && refreshedSavedCourse.outcomes.length ? refreshedSavedCourse.outcomes : data.outcomes);
-        data.modules = (refreshedSavedCourse.modules && refreshedSavedCourse.modules.length) ? refreshedSavedCourse.modules : data.modules;
-        data.questions = (refreshedSavedCourse.questions && refreshedSavedCourse.questions.length) ? refreshedSavedCourse.questions : data.questions;
+        data.modules = Array.isArray(refreshedSavedCourse.modules) ? refreshedSavedCourse.modules : [];
+        data.questions = Array.isArray(refreshedSavedCourse.questions) ? refreshedSavedCourse.questions : [];
 
         document.getElementById('course-pill').textContent = refreshedSavedCourse.category || courseCategory;
         document.getElementById('course-hero-img').src = data.image;
         document.getElementById('course-description').textContent = data.description;
-        document.getElementById('overview-module-count').textContent = data.modules.length;
+        updateOverviewCounts();
         renderOutcomes();
 
         isAuthored = data.modules.length > 0 && data.questions.length > 0;
@@ -1949,6 +1959,10 @@
       const examSubmitBtn = document.getElementById('exam-submit-btn');
 
       function startExam() {
+        const examTotal = data.questions.length;
+        const passNeeded = Math.ceil(examTotal * PASS_PERCENT);
+        const introNote = document.getElementById('exam-intro-note');
+        if (introNote) introNote.textContent = `Answer all ${examTotal} questions, then submit. You need 90% (${passNeeded}/${examTotal}) to pass.`;
         examAnswers = new Array(data.questions.length).fill(null);
         currentQ = 0;
         renderQuestion();
@@ -2043,7 +2057,7 @@
         });
         const total = data.questions.length;
         const pct = Math.round((correctCount / total) * 100);
-        const passed = correctCount >= PASS_SCORE;
+        const passed = correctCount >= Math.ceil(total * PASS_PERCENT);
 
         progress.lastScore = { correctCount, total, pct, passed, date: new Date().toISOString() };
         if (passed) progress.passed = true;
@@ -2129,7 +2143,7 @@
           actions.appendChild(verifyBtn);
         } else {
           heading.textContent = "Not quite a pass yet";
-          message.textContent = `You scored ${pct}% (${correctCount}/${total}). A score of 90% (18/20) is required to pass. Review the modules and try again — you can retake the exam right away.`;
+          message.textContent = `You scored ${pct}% (${correctCount}/${total}). A score of 90% (${Math.ceil(total * PASS_PERCENT)}/${total}) is required to pass. Review the modules and try again — you can retake the exam right away.`;
           const retakeBtn = document.createElement('button');
           retakeBtn.className = 'btn btn-primary';
           retakeBtn.textContent = 'Retake Exam';
