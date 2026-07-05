@@ -95,6 +95,10 @@ onAuthStateChanged(auth, (user) => {
    localStorage "bhf_course_catalog")
 ============================================= */
 let coursesCache = [];
+let resolveCoursesReady;
+const coursesReadyPromise = new Promise((resolve) => {
+  resolveCoursesReady = resolve;
+});
 
 const loadCoursesCache = async () => {
   try {
@@ -103,6 +107,8 @@ const loadCoursesCache = async () => {
   } catch (error) {
     console.error("Failed to load courses from Firestore", error);
     coursesCache = [];
+  } finally {
+    resolveCoursesReady();
   }
 };
 
@@ -1498,6 +1504,7 @@ window.updateHeaderAuthLink = updateHeaderAuthLink;
 window.normalizeCourseTitle = normalizeCourseTitle;
 window.showToast = showToast;
 window.authReadyPromise = authReadyPromise;
+window.coursesReadyPromise = coursesReadyPromise;
 window.ADMIN_EMAIL = ADMIN_EMAIL;
 // Certificate helpers, exposed for course-detail.html's plain (non-module)
 // inline script, which can't `import` from script.js directly.
@@ -3303,6 +3310,7 @@ if (page === "manage-courses") {
   const adminCourseList = document.getElementById('admin-course-list');
   const categorySelect = document.getElementById('manage-category-select');
   const focusMode = new URLSearchParams(window.location.search).get('focus') === 'modules';
+  const publishedOnlyMode = new URLSearchParams(window.location.search).get('view') === 'published';
   let selectedCategory = '';
 
   const populateManageCategoryOptions = () => {
@@ -3317,16 +3325,21 @@ if (page === "manage-courses") {
   const renderManageCourses = () => {
     if (!adminCourseList) return;
     const all = getCourseCatalog();
+    // "Publish Management" only shows courses that actually live in Firestore
+    // (i.e. `course.id` is set) — courses you added yourself, or built-in
+    // courses you've edited at least once. Untouched built-in defaults are
+    // left out since you never "published" those.
+    const scoped = publishedOnlyMode ? all.filter((course) => Boolean(course.id)) : all;
     const filtered = selectedCategory
-      ? all.filter((course) => (course.category || 'General') === selectedCategory)
-      : all;
+      ? scoped.filter((course) => (course.category || 'General') === selectedCategory)
+      : scoped;
 
-    const heading = focusMode ? 'Edit Modules and Exam' : 'Published Courses';
+    const heading = focusMode ? 'Edit Modules and Exam' : (publishedOnlyMode ? 'My Published Courses' : 'Published Courses');
 
     if (!filtered.length) {
       adminCourseList.innerHTML = `
         <h2>${heading}</h2>
-        <p class="form-note">${selectedCategory ? `No courses found in "${selectedCategory}" yet.` : 'No saved courses found yet. Use Add Course to publish a new course.'}</p>
+        <p class="form-note">${selectedCategory ? `No courses found in "${selectedCategory}" yet.` : (publishedOnlyMode ? "You haven't published any courses yet. Use Add Program to publish one." : 'No saved courses found yet. Use Add Course to publish a new course.')}</p>
       `;
       return;
     }

@@ -31,10 +31,10 @@
     <main class="page-shell admin-shell">
       
       <div class="admin-actions" style="margin-top: 1rem;">
-        <a class="btn btn-primary" href="manage-courses.html">Edit Course</a>
         <a class="btn btn-primary" href="add-course.html">Add Program</a>
-        <a class="btn btn-primary" href="manage-courses.html">Publish Management</a>
+        <a class="btn btn-primary" href="manage-courses.html?view=published">Publish Management</a>
         <a class="btn btn-primary" href="manage-courses.html?focus=modules">Edit Modules and Exam</a>
+        <a class="btn btn-primary" href="#category-manager">Program Categories</a>
       </div>
 
       <section class="admin-panel">
@@ -88,7 +88,7 @@
           <div id="admin-overrides"></div>
         </section>
 
-        <section class="category-manager">
+        <section class="category-manager" id="category-manager" style="scroll-margin-top: 100px;">
           <h2>Program categories</h2>
           <p class="form-note">Add or remove program categories used when creating courses.</p>
           <form id="category-form">

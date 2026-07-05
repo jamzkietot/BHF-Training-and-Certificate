@@ -1537,7 +1537,10 @@
             questions: savedCourse.questions && savedCourse.questions.length ? savedCourse.questions : COURSE_DATA[courseTitle]?.questions || getExamFor(courseTitle)
           }
         : (COURSE_DATA[courseTitle] || genericCourseData(courseTitle, courseCategory));
-      const isAuthored = data.modules.length > 0 && data.questions.length > 0;
+      // isAuthored/data get re-checked once Firestore data has loaded (see
+      // the "Pick up admin edits" block below), so this needs to stay
+      // reassignable instead of a const.
+      let isAuthored = data.modules.length > 0 && data.questions.length > 0;
 
       document.title = courseTitle + " | BHF Certification Academy";
       document.getElementById('course-pill').textContent = courseCategory;
@@ -1547,27 +1550,71 @@
       document.getElementById('course-description').textContent = data.description;
       document.getElementById('overview-module-count').textContent = data.modules.length;
 
-      const outcomesList = document.getElementById('course-outcomes');
-      if (data.outcomes.length) {
-        data.outcomes.forEach(o => {
-          const li = document.createElement('li');
-          li.textContent = o;
-          outcomesList.appendChild(li);
-        });
-      } else {
-        outcomesList.style.display = 'none';
+      // Pulled into a function so it can be called again if a saved course
+      // arrives after this first render (see below).
+      function renderOutcomes() {
+        const outcomesList = document.getElementById('course-outcomes');
+        outcomesList.innerHTML = '';
+        if (data.outcomes.length) {
+          data.outcomes.forEach(o => {
+            const li = document.createElement('li');
+            li.textContent = o;
+            outcomesList.appendChild(li);
+          });
+          outcomesList.style.display = '';
+        } else {
+          outcomesList.style.display = 'none';
+        }
       }
+      renderOutcomes();
 
       const startBtn = document.getElementById('start-course-btn');
-      if (!isAuthored) {
-        startBtn.disabled = true;
-        startBtn.textContent = "Content Coming Soon";
+      function refreshStartButtonState() {
+        if (!isAuthored) {
+          startBtn.disabled = true;
+          startBtn.textContent = "Content Coming Soon";
+        } else {
+          startBtn.disabled = false;
+          startBtn.textContent = "Start Course";
+        }
       }
+      refreshStartButtonState();
 
       /* ---------- Progress storage ---------- */
       const slug = courseTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
       (async function initProgress() {
+      // This inline script runs immediately while the page is still being
+      // parsed, but script.js (which defines findSavedCourse/getModulesFor
+      // and loads courses from Firestore) is a deferred module — it hasn't
+      // run yet at that point, and even once it has, the Firestore fetch is
+      // still async. That meant admin edits (description, image, modules,
+      // exam questions) never showed up here even though they saved fine.
+      // Wait for the courses to actually finish loading, then re-check for
+      // a saved/edited version of this course and refresh the page with it.
+      if (window.coursesReadyPromise) {
+        await window.coursesReadyPromise;
+      }
+      const refreshedSavedCourse = typeof findSavedCourse === 'function' ? findSavedCourse(courseTitle) : null;
+      if (refreshedSavedCourse) {
+        data.image = refreshedSavedCourse.img || data.image;
+        data.description = refreshedSavedCourse.description || data.description;
+        data.outcomes = (refreshedSavedCourse.learning && refreshedSavedCourse.learning.length)
+          ? refreshedSavedCourse.learning
+          : (refreshedSavedCourse.outcomes && refreshedSavedCourse.outcomes.length ? refreshedSavedCourse.outcomes : data.outcomes);
+        data.modules = (refreshedSavedCourse.modules && refreshedSavedCourse.modules.length) ? refreshedSavedCourse.modules : data.modules;
+        data.questions = (refreshedSavedCourse.questions && refreshedSavedCourse.questions.length) ? refreshedSavedCourse.questions : data.questions;
+
+        document.getElementById('course-pill').textContent = refreshedSavedCourse.category || courseCategory;
+        document.getElementById('course-hero-img').src = data.image;
+        document.getElementById('course-description').textContent = data.description;
+        document.getElementById('overview-module-count').textContent = data.modules.length;
+        renderOutcomes();
+
+        isAuthored = data.modules.length > 0 && data.questions.length > 0;
+        refreshStartButtonState();
+      }
+
       // Wait for Firebase to resolve who's signed in before picking a
       // per-user progress key (auth is now async via Firebase, not an
       // instant localStorage read).
