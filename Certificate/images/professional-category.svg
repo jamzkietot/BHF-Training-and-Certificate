@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500">
+  <rect width="800" height="500" rx="36" fill="#f7f3ff"/>
+  <rect x="120" y="120" width="560" height="260" rx="24" fill="#ffffff"/>
+  <circle cx="280" cy="245" r="80" fill="#7b61ff"/>
+  <rect x="400" y="180" width="180" height="24" rx="12" fill="#35b4a2"/>
+  <rect x="400" y="225" width="160" height="24" rx="12" fill="#2f6f9e"/>
+  <rect x="400" y="270" width="200" height="24" rx="12" fill="#f0a63a"/>
+  <path d="M250 220l20 20 45-50" stroke="#ffffff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="400" y="430" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="40" font-weight="700" fill="#2d3e50">Professional Skills</text>
+</svg>

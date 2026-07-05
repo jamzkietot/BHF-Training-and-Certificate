@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Add Course | BHF Certification Academy</title>
+    <meta name="description" content="Create a new course and exam setup from the admin portal." />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body data-page="add-course">
+    <header class="topbar">
+      <a class="brand" href="index.html">
+        <img class="brand-logo" src="images/bhflogo.jpg" alt="BHF logo" />
+        <span>BHF Certification Academy</span>
+      </a>
+      <nav class="nav-links">
+        <a href="dashboard.html">Dashboard</a>
+        <a href="programs.html">Programs</a>
+        <a href="add-course.html">Add Course</a>
+        <a href="manage-courses.html">Manage Courses</a>
+        <a href="verify.html">Verify</a>
+        <a href="login.html" id="logout-button" class="btn btn-secondary">Logout</a>
+      </nav>
+    </header>
+
+    <main class="page-shell">
+      <div class="page-title">
+        <p class="eyebrow">ADMIN COURSE CREATOR</p>
+        <h1>Add a new course</h1>
+        <p>Create a course, add optional certification exam questions, and publish it for learners.</p>
+      </div>
+
+      <div class="admin-panel">
+        <form id="course-builder-form">
+          <div class="form-row">
+            <label for="course-title">Course title</label>
+            <input id="course-title" type="text" placeholder="e.g. Hospitality Leadership" required />
+          </div>
+
+          <div class="form-row">
+            <label for="course-category">Category</label>
+            <select id="course-category">
+              <option>Hospitality Management</option>
+              <option>Accounting &amp; Finance</option>
+              <option>Information Technology</option>
+              <option>Business &amp; Management</option>
+              <option>Professional Skills</option>
+              <option>Custom Programs</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <label for="course-description">Course description</label>
+            <textarea id="course-description" placeholder="Describe the course in one short paragraph."></textarea>
+          </div>
+
+          <div class="form-row">
+            <label for="course-image">Course thumbnail image URL</label>
+            <input id="course-image" type="url" placeholder="https://example.com/thumbnail.jpg" />
+          </div>
+
+          <div class="form-row">
+            <label for="course-pdf">Course PDF (optional)</label>
+            <input id="course-pdf" type="file" accept=".pdf" />
+            <p class="form-note">Upload a PDF syllabus or course guide. The file is stored in browser data.</p>
+          </div>
+
+          <div class="form-row">
+            <label for="course-pdf-url">Or PDF URL</label>
+            <input id="course-pdf-url" type="url" placeholder="Optional direct PDF link" />
+          </div>
+
+          <div class="form-row form-switch-row">
+            <label><input id="course-active" type="checkbox" checked /> Activate course</label>
+          </div>
+
+          <div class="form-row">
+            <label for="course-validity-days">Certificate validity (days)</label>
+            <input id="course-validity-days" type="number" min="1" value="365" />
+          </div>
+
+          <div class="form-row form-switch-row">
+            <label><input id="course-exam-toggle" type="checkbox" checked /> Enable certification exam</label>
+          </div>
+
+          <div id="question-builder" class="question-builder">
+            <div class="question-card">
+              <div class="form-row">
+                <label>Question 1</label>
+                <input type="text" class="course-question-text" placeholder="Enter a question" />
+              </div>
+              <div class="form-row">
+                <label>Options</label>
+                <div class="question-options">
+                  <input type="text" class="course-question-option" placeholder="Option 1" />
+                  <input type="text" class="course-question-option" placeholder="Option 2" />
+                  <input type="text" class="course-question-option" placeholder="Option 3" />
+                  <input type="text" class="course-question-option" placeholder="Option 4" />
+                </div>
+              </div>
+              <div class="form-row">
+                <label>Correct answer index</label>
+                <input type="number" class="course-question-answer" min="0" max="3" value="0" />
+              </div>
+            </div>
+          </div>
+
+          <button id="add-question-btn" type="button" class="btn btn-secondary">Add Question</button>
+
+          <div class="form-actions">
+            <button id="course-save" class="btn btn-primary">Save Course</button>
+            <button id="course-clear" type="button" class="btn btn-secondary">Reset Form</button>
+          </div>
+
+          <p id="course-builder-note" class="form-note"></p>
+        </form>
+      </div>
+    </main>
+
+    <footer class="footer" id="contact">
+      <div>
+        <img class="brand-logo" src="images/bhflogo.jpg" alt="BHF logo" />
+        <p>BHF Group of Companies</p>
+      </div>
+      <div>
+        <h3>Quick Links</h3>
+        <a href="admin.html">Admin</a>
+        <a href="manage-courses.html">Manage Courses</a>
+      </div>
+      <div>
+        <h3>Contact</h3>
+        <p>education@bhf.com</p>
+        <p>+63 74 442 1000</p>
+      </div>
+    </footer>
+
+    <script type="module" src="script.js"></script>
+  </body>
+</html>
