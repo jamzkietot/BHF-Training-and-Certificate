@@ -1580,12 +1580,26 @@
         const auth = window.getAuth ? window.getAuth() : null;
         return auth?.email ? auth.email.toLowerCase().replace(/[^a-z0-9]/g, '') : null;
       };
-      
+
       const userEmail = getCurrentUserEmail();
-      // Storage key now includes the user's email to separate progress per account
-      const storageKey = userEmail ? `bhf_progress_${userEmail}_${slug}` : `bhf_progress_${slug}`;
+      // Storage key must include the user's email so progress never leaks
+      // between accounts. If we somehow don't have a signed-in user at this
+      // point, keep progress in memory only for this page view instead of
+      // falling back to a shared, un-scoped key that every visitor would read.
+      const storageKey = userEmail ? `bhf_progress_${userEmail}_${slug}` : null;
+
+      // One-time cleanup: earlier versions of this app stored progress under
+      // a shared key with no user email at all, so every visitor read and
+      // wrote the same record. Remove that legacy key so it can never leak
+      // a past user's "completed"/passed state into a different account again.
+      try {
+        localStorage.removeItem(`bhf_progress_${slug}`);
+      } catch (e) {
+        // ignore
+      }
 
       function loadProgress() {
+        if (!storageKey) return { completedModules: [], lastScore: null, passed: false };
         try {
           return JSON.parse(localStorage.getItem(storageKey)) || { completedModules: [], lastScore: null, passed: false };
         } catch (e) {
@@ -1593,6 +1607,7 @@
         }
       }
       function saveProgress(progress) {
+        if (!storageKey) return; // not signed in — nothing to persist
         localStorage.setItem(storageKey, JSON.stringify(progress));
       }
       let progress = loadProgress();

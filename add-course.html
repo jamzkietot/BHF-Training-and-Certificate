@@ -39,14 +39,18 @@
 
           <div class="form-row">
             <label for="course-category">Category</label>
-            <select id="course-category">
-              <option>Hospitality Management</option>
-              <option>Accounting &amp; Finance</option>
-              <option>Information Technology</option>
-              <option>Business &amp; Management</option>
-              <option>Professional Skills</option>
-              <option>Custom Programs</option>
-            </select>
+            <div class="category-select-row">
+              <select id="course-category">
+                <option>Hospitality Management</option>
+                <option>Accounting &amp; Finance</option>
+                <option>Information Technology</option>
+                <option>Business &amp; Management</option>
+                <option>Professional Skills</option>
+                <option>Custom Programs</option>
+              </select>
+              <button id="course-add-category-btn" type="button" class="btn btn-secondary">Add Category</button>
+            </div>
+            <p id="course-category-note" class="form-note"></p>
           </div>
 
           <div class="form-row">
@@ -57,17 +61,6 @@
           <div class="form-row">
             <label for="course-image">Course thumbnail image URL</label>
             <input id="course-image" type="url" placeholder="https://example.com/thumbnail.jpg" />
-          </div>
-
-          <div class="form-row">
-            <label for="course-pdf">Course PDF (optional)</label>
-            <input id="course-pdf" type="file" accept=".pdf" />
-            <p class="form-note">Upload a PDF syllabus or course guide. The file is stored in browser data.</p>
-          </div>
-
-          <div class="form-row">
-            <label for="course-pdf-url">Or PDF URL</label>
-            <input id="course-pdf-url" type="url" placeholder="Optional direct PDF link" />
           </div>
 
           <div class="form-row form-switch-row">

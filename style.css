@@ -2348,6 +2348,21 @@ body[data-page="admin"] #bhf-admin-edit-toggle {
   min-height: 160px;
 }
 
+.category-select-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.category-select-row select {
+  flex: 1;
+}
+
+.category-select-row .btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 .form-actions {
   display: flex;
   flex-wrap: wrap;

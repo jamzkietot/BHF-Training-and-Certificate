@@ -2940,8 +2940,6 @@ if (page === "add-course") {
   const categoryInput = document.getElementById("course-category");
   const descriptionInput = document.getElementById("course-description");
   const imageInput = document.getElementById("course-image");
-  const pdfInput = document.getElementById("course-pdf");
-  const pdfUrlInput = document.getElementById("course-pdf-url");
   const activeInput = document.getElementById("course-active");
   const validityInput = document.getElementById("course-validity-days");
   const examToggle = document.getElementById("course-exam-toggle");
@@ -2957,15 +2955,6 @@ if (page === "add-course") {
   if (!isAdmin()) {
     window.location.href = "dashboard.html";
   }
-
-  const readFileAsDataUrl = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = () => reject(new Error("Failed to read file."));
-      reader.readAsDataURL(file);
-    });
-  };
 
   const buildQuestionCard = (index, question = {}) => {
     const questionText = question.q || "";
@@ -3097,17 +3086,57 @@ if (page === "add-course") {
     bindModuleRemoval();
   };
 
-  const populateCategoryOptions = () => {
+  const populateCategoryOptions = (selectValue) => {
     if (!categoryInput) return;
+    const previousValue = selectValue || categoryInput.value;
     // Start with categories defined in BHF_COURSES plus any saved categories
     const defaultCats = Array.from(new Set((BHF_COURSES || []).map((c) => c.category).filter(Boolean)));
     const savedCats = getSavedCategories().map((c) => c.name).filter(Boolean);
     const merged = Array.from(new Set([...defaultCats, ...savedCats]));
     categoryInput.innerHTML = merged.map((cat) => `<option>${cat}</option>`).join('');
+    if (previousValue && merged.includes(previousValue)) {
+      categoryInput.value = previousValue;
+    }
   };
 
   // Populate category select with current categories
   populateCategoryOptions();
+
+  // Let admins add a brand-new category right from the course form,
+  // instead of having to go back to the Admin page first.
+  const addCategoryBtn = document.getElementById('course-add-category-btn');
+  const categoryNote = document.getElementById('course-category-note');
+
+  const showCourseCategoryNote = (message, type = 'success') => {
+    if (!categoryNote) return;
+    categoryNote.textContent = message;
+    categoryNote.className = `form-note ${type === 'success' ? 'success' : 'error'}`;
+  };
+
+  if (addCategoryBtn) {
+    addCategoryBtn.addEventListener('click', async () => {
+      const name = window.prompt('New category name:');
+      if (name === null) return; // user cancelled
+      const trimmed = name.trim();
+      if (!trimmed) {
+        showCourseCategoryNote('Enter a category name.', 'error');
+        return;
+      }
+      addCategoryBtn.disabled = true;
+      try {
+        await addSavedCategory(trimmed);
+        await loadCategoriesCache();
+        populateCategoryOptions(trimmed);
+        showCourseCategoryNote(`Category added: ${trimmed}`, 'success');
+        showToast(`Category saved: ${trimmed}`, 'success');
+      } catch (err) {
+        console.error('Failed to add category', err);
+        showCourseCategoryNote('Unable to add category. Please try again.', 'error');
+      } finally {
+        addCategoryBtn.disabled = false;
+      }
+    });
+  }
 
   const populateQuestions = (questions = []) => {
     questionBuilder.innerHTML = '';
@@ -3159,7 +3188,6 @@ if (page === "add-course") {
     // Accept either `description` or legacy `desc` from defaults
     descriptionInput.value = savedCourse.description || savedCourse.desc || '';
     imageInput.value = savedCourse.img || savedCourse.image || '';
-    pdfUrlInput.value = savedCourse.pdfUrl || '';
     activeInput.checked = savedCourse.active ?? true;
     validityInput.value = savedCourse.validityDays || savedCourse.validity || 365;
     examToggle.checked = savedCourse.examEnabled ?? (Array.isArray(savedCourse.questions) ? savedCourse.questions.length > 0 : true);
@@ -3183,7 +3211,19 @@ if (page === "add-course") {
   };
 
   if (typeof loadEditableCourse === 'function') {
-    loadEditableCourse();
+    loadEditableCourse().then(() => {
+      const focusParam = new URLSearchParams(window.location.search).get('focus');
+      if (focusParam === 'modules') {
+        const moduleHeader = document.querySelector('.module-builder-header');
+        if (moduleHeader) {
+          const banner = document.createElement('p');
+          banner.className = 'form-note success';
+          banner.textContent = 'Editing Modules and Exam questions for this course. Scroll down to update them, then click Save Course.';
+          moduleHeader.parentElement?.insertBefore(banner, moduleHeader);
+          moduleHeader.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+    });
   }
 
   courseForm?.addEventListener('submit', async (event) => {
@@ -3199,7 +3239,6 @@ if (page === "add-course") {
       setFormNote(courseNote, 'Please enter a valid image URL (http, https, or data).', 'error');
       return;
     }
-    const pdfUrl = pdfUrlInput?.value.trim() || '';
     const active = activeInput?.checked ?? true;
     const validityDays = Number(validityInput?.value) || 365;
     const examEnabled = examToggle?.checked ?? false;
@@ -3209,23 +3248,11 @@ if (page === "add-course") {
       return;
     }
 
-    let pdfData = '';
-    if (pdfInput?.files?.length) {
-      try {
-        pdfData = await readFileAsDataUrl(pdfInput.files[0]);
-      } catch (error) {
-        setFormNote(courseNote, 'Unable to read the selected PDF. Please try again or use a URL instead.', 'error');
-        return;
-      }
-    }
-
     const course = {
       title,
       category,
       description,
       img: image,
-      pdfUrl,
-      pdfData,
       active,
       validityDays,
       examEnabled,
@@ -3274,26 +3301,56 @@ if (page === "manage-courses") {
   }
 
   const adminCourseList = document.getElementById('admin-course-list');
+  const categorySelect = document.getElementById('manage-category-select');
+  const focusMode = new URLSearchParams(window.location.search).get('focus') === 'modules';
+  let selectedCategory = '';
+
+  const populateManageCategoryOptions = () => {
+    if (!categorySelect) return;
+    const defaultCats = Array.from(new Set((BHF_COURSES || []).map((c) => c.category).filter(Boolean)));
+    const savedCats = getSavedCategories().map((c) => c.name).filter(Boolean);
+    const merged = Array.from(new Set([...defaultCats, ...savedCats]));
+    categorySelect.innerHTML = `<option value="">All categories</option>` +
+      merged.map((cat) => `<option value="${cat}">${cat}</option>`).join('');
+  };
 
   const renderManageCourses = () => {
     if (!adminCourseList) return;
-    const saved = getSavedCourses();
+    const all = getCourseCatalog();
+    const filtered = selectedCategory
+      ? all.filter((course) => (course.category || 'General') === selectedCategory)
+      : all;
 
-    if (!saved.length) {
+    const heading = focusMode ? 'Edit Modules and Exam' : 'Published Courses';
+
+    if (!filtered.length) {
       adminCourseList.innerHTML = `
-        <h2>Published Courses</h2>
-        <p class="form-note">No saved courses found yet. Use Add Course to publish a new course.</p>
+        <h2>${heading}</h2>
+        <p class="form-note">${selectedCategory ? `No courses found in "${selectedCategory}" yet.` : 'No saved courses found yet. Use Add Course to publish a new course.'}</p>
       `;
       return;
     }
 
     adminCourseList.innerHTML = `
-      <h2>Published Courses</h2>
+      <h2>${heading}</h2>
       <div class="course-grid admin-course-grid">
-        ${saved
+        ${filtered
           .map((course) => {
             const activeLabel = course.active ? 'Active' : 'Inactive';
             const buttonText = course.active ? 'Disable' : 'Activate';
+            const editLabel = focusMode ? 'Edit Modules &amp; Exam' : 'Edit';
+            const editHref = focusMode
+              ? `add-course.html?edit=${encodeURIComponent(course.title)}&focus=modules`
+              : `add-course.html?edit=${encodeURIComponent(course.title)}`;
+            // Toggle/Delete act on Firestore records; built-in default courses
+            // that haven't been saved yet don't have an `id`, so hide those
+            // two actions for them (editing one will create a saved copy).
+            const manageActions = course.id
+              ? `
+                <button class="btn btn-secondary" type="button" data-action="toggle-active" data-title="${course.title}">${buttonText}</button>
+                <button class="btn btn-secondary" type="button" data-action="delete-course" data-title="${course.title}">Delete</button>
+              `
+              : `<span class="pill">Built-in default</span>`;
             return `
               <article class="course-card admin-course-card">
                 <div class="course-body">
@@ -3308,9 +3365,8 @@ if (page === "manage-courses") {
                 </div>
                 <div class="course-actions admin-course-actions">
                   <a class="btn btn-secondary" href="course-detail.html?course=${encodeURIComponent(course.title)}&category=${encodeURIComponent(course.category)}">Preview</a>
-                  <button class="btn btn-primary" type="button" data-action="edit-course" data-title="${course.title}">Edit</button>
-                  <button class="btn btn-secondary" type="button" data-action="toggle-active" data-title="${course.title}">${buttonText}</button>
-                  <button class="btn btn-secondary" type="button" data-action="delete-course" data-title="${course.title}">Delete</button>
+                  <a class="btn btn-primary" href="${editHref}">${editLabel}</a>
+                  ${manageActions}
                 </div>
               </article>
             `;
@@ -3319,6 +3375,11 @@ if (page === "manage-courses") {
       </div>
     `;
   };
+
+  categorySelect?.addEventListener('change', () => {
+    selectedCategory = categorySelect.value;
+    renderManageCourses();
+  });
 
   adminCourseList?.addEventListener('click', async (event) => {
     const button = event.target.closest('button');
@@ -3338,11 +3399,6 @@ if (page === "manage-courses") {
       renderManageCourses();
     }
 
-    if (action === 'edit-course') {
-      window.location.href = `add-course.html?edit=${encodeURIComponent(title)}`;
-      return;
-    }
-
     if (action === 'delete-course') {
       const confirmed = window.confirm(`Delete the course "${title}" from the catalog?`);
       if (!confirmed) { button.disabled = false; return; }
@@ -3352,6 +3408,7 @@ if (page === "manage-courses") {
     }
   });
 
+  populateManageCategoryOptions();
   renderManageCourses();
 }
 
@@ -3377,5 +3434,3 @@ if (page === "programs") {
   }
 }
 }
-
-
