@@ -687,6 +687,40 @@ main {
   color: var(--accent);
 }
 
+.nav-admin {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.nav-admin .admin-toggle {
+  color: rgba(255,255,255,0.92);
+  text-decoration: none;
+}
+
+.nav-admin .admin-dropdown {
+  display: none;
+  position: absolute;
+  top: 120%;
+  left: 0;
+  background: var(--accent-dark);
+  border-radius: 8px;
+  padding: 0.35rem;
+  box-shadow: 0 8px 20px rgba(15,34,72,0.2);
+  z-index: 999;
+}
+
+.nav-admin .admin-dropdown a {
+  display: block;
+  color: #fff;
+  padding: 0.45rem 0.65rem;
+  white-space: nowrap;
+}
+
+.nav-admin:hover .admin-dropdown {
+  display: block;
+}
+
 /* Disabled / locked admin link shown to non-admin users */
 .nav-links a.admin-locked {
   opacity: 0.6;
@@ -741,65 +775,6 @@ main {
   cursor: not-allowed;
 }
 
-.bhf-admin-edit-page-button {
-  margin-top: 1rem;
-  background: var(--accent-dark);
-  color: white;
-  border: none;
-  padding: 0.85rem 1rem;
-  border-radius: 999px;
-  cursor: pointer;
-  font-weight: 700;
-}
-
-.bhf-admin-edit-page-button:hover {
-  background: #1f365e;
-}
-
-.page-shell .page-title {
-  position: relative;
-}
-
-.page-shell .page-title #bhf-admin-edit-page-button {
-  position: absolute;
-  top: 1.75rem;
-  right: 1.75rem;
-  margin-top: 0;
-}
-
-@media (max-width: 960px) {
-  .page-shell .page-title #bhf-admin-edit-page-button {
-    position: static;
-    width: 100%;
-    margin-top: 1rem;
-  }
-}
-
-body[data-page="programs"] .page-shell .page-title {
-  position: relative;
-  padding-right: 180px;
-}
-
-body[data-page="programs"] .page-shell .page-title #bhf-admin-edit-page-button {
-  position: absolute;
-  top: 0.85rem;
-  right: 1.5rem;
-  z-index: 10;
-  min-width: 140px;
-  pointer-events: auto;
-  width: auto;
-}
-
-body[data-page="programs"] .page-shell .page-title {
-  padding-top: 1rem;
-  padding-right: 160px;
-}
-
-@media (max-width: 1100px) {
-  body[data-page="programs"] .page-shell .page-title {
-    padding-right: 1.5rem;
-  }
-}
 
 /* Highlight when hovering editable elements in edit mode */
 .bhf-admin-edit-highlight {
@@ -1533,6 +1508,15 @@ body[data-page="home"] #bhf-admin-edit-page-button {
   font-size: 2.4rem;
   color: var(--accent);
   margin-bottom: 0.5rem;
+}
+
+/* Hide legacy edit-mode UI only on the admin page */
+body[data-page="admin"] #bhf-admin-edit-page-button,
+body[data-page="admin"] .bhf-admin-edit-page-button,
+body[data-page="admin"] #bhf-admin-edit-toggle {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 
 /* ---------- Admin CTA banner ---------- */
@@ -4752,3 +4736,13 @@ a.course-card:hover {
     gap: 1.25rem;
   }
 }
+
+/* Remove accidental/duplicate Edit Mode buttons inside Programs page header */
+body[data-page="programs"] .page-title button {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Hide global Edit Mode undo pill that appears with toasts */
+/* (undo pill visibility restored) */

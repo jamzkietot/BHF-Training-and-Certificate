@@ -873,8 +873,6 @@ const renderAdminHeaderNav = () => {
   const navLinks = [
     { href: "index.html", text: "Home" },
     { href: "programs.html", text: "Programs" },
-    { href: "add-course.html", text: "Add Courses" },
-    { href: "manage-courses.html", text: "Manage Courses" },
     { href: "index.html#verify", text: "Verify" }
   ];
 
@@ -1058,6 +1056,12 @@ const ensureToastContainer = () => {
 };
 
 const showToast = (message, type = "info") => {
+  // Suppress edit-mode toasts to avoid repeating notifications
+  try {
+    if (typeof message === 'string' && message.toLowerCase().includes('edit mode')) return;
+  } catch (e) {
+    // ignore
+  }
   const wrapper = ensureToastContainer();
   const toast = document.createElement("div");
   toast.className = `toast toast-${type}`;
@@ -2283,3 +2287,4 @@ if (page === "programs") {
   }
 }
 }
+

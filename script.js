@@ -1047,8 +1047,6 @@ const renderAdminHeaderNav = () => {
   const navLinks = [
     { href: "index.html", text: "Home" },
     { href: "programs.html", text: "Programs" },
-    { href: "add-course.html", text: "Add Courses" },
-    { href: "manage-courses.html", text: "Manage Courses" },
     { href: "index.html#verify", text: "Verify" }
   ];
 
@@ -3379,3 +3377,5 @@ if (page === "programs") {
   }
 }
 }
+
+
