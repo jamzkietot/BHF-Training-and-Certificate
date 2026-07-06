@@ -13,6 +13,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="style.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   </head>
   <body data-page="home">
     <!-- Header / Navigation -->
@@ -40,15 +41,16 @@
           <div class="verify-content">
             <p class="eyebrow">VERIFY A CERTIFICATE</p>
             <h2>Check the validity of a training credential.</h2>
-            <p>Enter a 16-character certificate code to confirm its status.</p>
+            <p>Paste your 16-character certificate code (for example: BHFABCD1234XYZWV) to confirm its authenticity.</p>
             <form id="verify-form">
               <input
                 id="certificate-code"
                 name="certificate-code"
                 type="text"
-                maxlength="16"
-                placeholder="Enter code"
+                placeholder="Paste your certificate code here"
+                title="Enter or paste your 16-character certificate code (example: BHFABCD1234XYZWV)"
                 required
+                autocomplete="off"
               />
               <button type="submit" class="btn btn-primary">Verify</button>
             </form>

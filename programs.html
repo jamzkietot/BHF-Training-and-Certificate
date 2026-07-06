@@ -115,6 +115,47 @@
             </div>
         </div>
 
+        <div class="payment-modal" id="paymentModal" hidden>
+            <div class="payment-modal-backdrop"></div>
+            <div class="payment-modal-body">
+                <div class="payment-modal-header">
+                    <div>
+                        <h2 id="paymentModalTitle">Course Payment</h2>
+                        <p class="payment-modal-subtitle">Choose one of the payment options below to unlock the course.</p>
+                    </div>
+                    <button class="close-modal-btn" type="button" aria-label="Close payment modal">✕</button>
+                </div>
+                <p id="paymentModalCourseInfo" class="payment-modal-copy">Complete payment to enroll in this course.</p>
+                <div class="payment-options">
+                    <article class="payment-option">
+                        <h3>GCash</h3>
+                        <p><strong>Account name:</strong> BHF Academy</p>
+                        <p><strong>Number:</strong> 0917 123 4567</p>
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=GCash%20BHF%20Academy%2009171234567" alt="GCash QR code" />
+                    </article>
+                    <article class="payment-option">
+                        <h3>Bank Transfer</h3>
+                        <p><strong>Bank:</strong> BDO</p>
+                        <p><strong>Account Name:</strong> BHF Academy</p>
+                        <p><strong>Account No.:</strong> 0123 4567 890</p>
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=BDO%20BHF%20Academy%2001234567890" alt="Bank transfer QR code" />
+                    </article>
+                    <article class="payment-option">
+                        <h3>QR Payments</h3>
+                        <p>Scan either QR code with your banking or digital wallet app.</p>
+                        <div class="payment-qr-grid">
+                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=GCash%20BHF%20Academy" alt="GCash QR" />
+                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=BDO%20BHF%20Academy" alt="Bank QR" />
+                        </div>
+                    </article>
+                </div>
+                <div class="payment-actions">
+                    <button class="btn btn-primary" id="confirmPaymentBtn">I have paid, continue</button>
+                    <button class="btn btn-secondary" id="cancelPaymentBtn">Cancel</button>
+                </div>
+            </div>
+        </div>
+
         <div class="dashboard-panels">
             <section class="schedule-panel schedule-empty">
                 <div class="panel-header">
@@ -982,6 +1023,13 @@
             return defaults;
         };
 
+        const escapeHtml = (str) => String(str || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+
         function getCourseCount() {
             return getProgramCatalog().length;
         }
@@ -1030,6 +1078,84 @@
                     closeCourseModal();
                 }
             });
+
+            const paymentModal = document.getElementById('paymentModal');
+            const confirmButton = document.getElementById('confirmPaymentBtn');
+            const cancelButton = document.getElementById('cancelPaymentBtn');
+            const paymentClose = paymentModal?.querySelector('.close-modal-btn');
+
+            if (confirmButton) {
+                confirmButton.addEventListener('click', confirmPayment);
+            }
+            if (cancelButton) {
+                cancelButton.addEventListener('click', closePaymentModal);
+            }
+            if (paymentClose) {
+                paymentClose.addEventListener('click', closePaymentModal);
+            }
+
+            if (paymentModal) {
+                paymentModal.addEventListener('click', (event) => {
+                    if (event.target === paymentModal) {
+                        closePaymentModal();
+                    }
+                });
+            }
+        }
+
+        const getCourseAccessRule = (course) => {
+            if (!course) return 'paid';
+            if (course.accessRule === 'free') return 'free';
+            if (typeof course.level === 'string' && course.level.toLowerCase() === 'beginner') return 'free';
+            return 'paid';
+        };
+
+        function handleCourseAction(name, category) {
+            const course = getProgramCatalog().find((c) => c.title === name);
+            if (!course) return;
+            if (getCourseAccessRule(course) === 'free') {
+                enrollCourse(name, category);
+            } else {
+                openPaymentModal(name, category);
+            }
+        }
+
+        function openPaymentModal(courseTitle, category) {
+            const modal = document.getElementById('paymentModal');
+            if (!modal) return;
+            const title = document.getElementById('paymentModalTitle');
+            const courseInfo = document.getElementById('paymentModalCourseInfo');
+            if (title) title.textContent = `Payment for ${courseTitle}`;
+            if (courseInfo) courseInfo.textContent = `Complete payment for ${courseTitle} to unlock this course.`;
+            modal.dataset.courseTitle = courseTitle;
+            modal.dataset.courseCategory = category;
+            modal.hidden = false;
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closePaymentModal() {
+            const modal = document.getElementById('paymentModal');
+            if (!modal) return;
+            modal.hidden = true;
+            document.body.style.overflow = 'auto';
+        }
+
+        function confirmPayment() {
+            const auth = getLiveAuth();
+            if (!auth || !auth.email) {
+                window.location.href = 'login.html';
+                return;
+            }
+            const modal = document.getElementById('paymentModal');
+            if (!modal) return;
+            const courseTitle = modal.dataset.courseTitle;
+            const courseCategory = modal.dataset.courseCategory;
+            if (!courseTitle) return;
+            if (window.markCourseAccessPaid) {
+                window.markCourseAccessPaid(courseTitle, auth.email);
+            }
+            closePaymentModal();
+            enrollCourse(courseTitle, courseCategory);
         }
 
         function renderCourses(deptFilter) {
@@ -1054,6 +1180,15 @@
                 return groups;
             }, {});
 
+            Object.values(coursesByDept).forEach((deptCourses) => {
+                deptCourses.sort((a, b) => {
+                    const aRule = getCourseAccessRule(a);
+                    const bRule = getCourseAccessRule(b);
+                    if (aRule !== bRule) return aRule === 'free' ? -1 : 1;
+                    return a.title.localeCompare(b.title);
+                });
+            });
+
             const visibleCount = Object.entries(coursesByDept).reduce((sum, [dept, courses]) => {
                 if (deptFilter && dept !== deptFilter) return sum;
                 return sum + courses.length;
@@ -1072,6 +1207,7 @@
                                 const enrolled = isEnrolled(name);
                                 const imgSrc = course.img || 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=600&q=80';
                                 const category = course.category || 'General';
+                                const accessRule = getCourseAccessRule(course);
                                 return `
                                     <div class="course-card">
                                         <img src="${imgSrc}" class="course-img" alt="${name}">
@@ -1083,7 +1219,7 @@
                                                 <div class="course-pill course-pill-enrolled">✅ Enrolled</div>
                                                 <a class="btn btn-secondary" href="course-detail.html?course=${encodeURIComponent(name)}&category=${encodeURIComponent(category)}">Continue</a>
                                             ` : `
-                                                <button class="btn btn-primary" onclick='enrollCourse(${JSON.stringify(name)}, ${JSON.stringify(category)})'>Enroll Now →</button>
+                                                <button class="btn btn-primary" type="button" data-course-action="pay-enroll" data-course-title="${escapeHtml(name)}" data-course-category="${escapeHtml(category)}">${accessRule === 'free' ? 'Enroll Now →' : 'Pay to Enroll →'}</button>
                                             `}
                                         </div>
                                     </div>
@@ -1107,6 +1243,23 @@
 
         const searchControl = document.getElementById('course-search');
         const filterControl = document.getElementById('course-filter');
+
+        const courseGridContainer = document.getElementById('courses-grid');
+        if (courseGridContainer) {
+            courseGridContainer.addEventListener('click', (event) => {
+                const button = event.target.closest('[data-course-action="pay-enroll"]');
+                if (!button) return;
+                const name = button.getAttribute('data-course-title');
+                const category = button.getAttribute('data-course-category');
+                if (!name || !category) return;
+                if (getProgramCatalog().some((c) => c.title === name && getCourseAccessRule(c) === 'free')) {
+                    enrollCourse(name, category);
+                } else {
+                    openPaymentModal(name, category);
+                }
+            });
+        }
+
         searchControl?.addEventListener('input', () => renderCourses(currentCourseDept));
         filterControl?.addEventListener('change', () => renderCourses(currentCourseDept));
 
@@ -1277,6 +1430,9 @@
         window.bindCourseModalActions = bindCourseModalActions;
         window.renderCourses = renderCourses;
         window.initModal = initModal;
+        window.enrollCourse = enrollCourse;
+        window.openPaymentModal = openPaymentModal;
+        window.confirmPayment = confirmPayment;
 
         // Initialize the programs page
         try {

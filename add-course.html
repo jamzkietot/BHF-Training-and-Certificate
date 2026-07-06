@@ -59,8 +59,24 @@
           </div>
 
           <div class="form-row">
+            <label for="course-level">Course level</label>
+            <select id="course-level">
+              <option value="Beginner">Beginner</option>
+              <option value="Intermediate">Intermediate</option>
+              <option value="Advanced">Advanced</option>
+            </select>
+          </div>
+
+          <div class="form-row">
             <label for="course-image">Course thumbnail image URL</label>
             <input id="course-image" type="url" placeholder="https://example.com/thumbnail.jpg" />
+          </div>
+
+          <div class="form-row">
+            <label for="course-materials-file">Study materials PDF (optional)</label>
+            <input id="course-materials-file" type="file" accept="application/pdf" />
+            <input id="course-materials-url" type="url" placeholder="Or paste a PDF URL" />
+            <p class="form-note">Beginner programs can be explored without payment, but certificates require payment. Intermediate and advanced programs require payment before learners can start.</p>
           </div>
 
           <div class="form-row form-switch-row">

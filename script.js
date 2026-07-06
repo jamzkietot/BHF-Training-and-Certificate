@@ -22,6 +22,7 @@ const page = document.body.dataset.page || "home";
 const CONTENT_STORE_KEY = "bhf_admin_content";
 const CERT_TEMPLATE_STORE_KEY = "bhf_certificate_template";
 const ENROLLMENT_STORE_KEY = "bhf_user_enrollments";
+const COURSE_ACCESS_STORE_KEY = "bhf_course_access_payments";
 const ADMIN_EMAIL = "admin@bhf.com";
 
 const defaultCertificateTemplate = {
@@ -281,6 +282,64 @@ const saveEnrollments = (enrollments) => {
   localStorage.setItem(ENROLLMENT_STORE_KEY, JSON.stringify(enrollments));
 };
 
+const getCourseAccessPayments = (email) => {
+  const normalizedEmail = (email || "").trim().toLowerCase();
+  if (!normalizedEmail) return {};
+  const stored = localStorage.getItem(COURSE_ACCESS_STORE_KEY);
+  try {
+    const data = stored ? JSON.parse(stored) : {};
+    return data[normalizedEmail] || {};
+  } catch {
+    return {};
+  }
+};
+
+const saveCourseAccessPayments = (email, payments) => {
+  const normalizedEmail = (email || "").trim().toLowerCase();
+  if (!normalizedEmail) return;
+  const stored = localStorage.getItem(COURSE_ACCESS_STORE_KEY);
+  try {
+    const data = stored ? JSON.parse(stored) : {};
+    data[normalizedEmail] = payments;
+    localStorage.setItem(COURSE_ACCESS_STORE_KEY, JSON.stringify(data));
+  } catch {
+    const data = {};
+    data[normalizedEmail] = payments;
+    localStorage.setItem(COURSE_ACCESS_STORE_KEY, JSON.stringify(data));
+  }
+};
+
+const hasPurchasedCourseAccess = (courseTitle, email) => {
+  const normalizedTitle = normalizeCourseTitle(courseTitle);
+  const payments = getCourseAccessPayments(email);
+  return Boolean(payments[normalizedTitle]);
+};
+
+const markCourseAccessPaid = (courseTitle, email) => {
+  const normalizedTitle = normalizeCourseTitle(courseTitle);
+  const payments = getCourseAccessPayments(email);
+  payments[normalizedTitle] = {
+    paidAt: new Date().toISOString(),
+    courseTitle: courseTitle?.trim() || normalizedTitle
+  };
+  saveCourseAccessPayments(email, payments);
+  return payments[normalizedTitle];
+};
+
+const courseRequiresPayment = (course) => {
+  const level = (course?.level || "Intermediate").toLowerCase();
+  return course?.accessRule === "paid" || level === "intermediate" || level === "advanced";
+};
+
+const canAccessCourse = (course, email) => {
+  if (!courseRequiresPayment(course)) return true;
+  return hasPurchasedCourseAccess(course?.title || course?.course || "", email);
+};
+
+const canAccessCertificate = (course, email) => {
+  return hasPurchasedCourseAccess(course?.title || course?.course || "", email);
+};
+
 const mergeCoursesWithSaved = (defaultCourses) => {
   const savedCourses = getSavedCourses();
   const normalizedSaved = savedCourses.reduce((map, course) => {
@@ -317,6 +376,19 @@ const BHF_COURSES = [
       "Learn quality standards and customer satisfaction metrics",
       "Develop leadership skills for hospitality teams",
       "Understand revenue management and profitability drivers"
+    ]
+  },
+  { title: "Hospitality Essentials (Free)", category: "Hospitality Management",
+    desc: "A free beginner-friendly course covering guest service basics, front-desk expectations, and workplace professionalism in hospitality.",
+    img: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=600&q=80",
+    level: "Beginner",
+    duration: "2 Weeks",
+    accessRule: "free",
+    learning: [
+      "Understand the basics of guest service and hospitality etiquette",
+      "Learn how front-desk and service teams support guests",
+      "Build professional communication and workplace readiness skills",
+      "Explore common hospitality roles and daily operations"
     ]
   },
 	  { title: "Front Office Operations", category: "Hospitality Management",
@@ -896,8 +968,12 @@ const generateCertificateCode = () => {
 
 // Writes the certificate to Firestore so it's visible from any device,
 // then refreshes the local cache and returns the saved record.
-const createCertificateFor = async ({ name, course, email, score, total }) => {
+const createCertificateFor = async ({ name, course, email, score, total, validityDays = 365 }) => {
   const date = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+  const issuedAt = new Date();
+  const expiryDate = new Date(issuedAt);
+  expiryDate.setDate(expiryDate.getDate() + Number(validityDays || 365));
+  const expiryLabel = expiryDate.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
   const code = generateCertificateCode();
   const certificate = {
     code,
@@ -907,8 +983,10 @@ const createCertificateFor = async ({ name, course, email, score, total }) => {
     score,
     total,
     date,
+    expiryDate: expiryLabel,
+    expiresAt: expiryDate.toISOString(),
     valid: true,
-    issuedAt: new Date().toISOString()
+    issuedAt: issuedAt.toISOString()
   };
   await addDoc(collection(db, "certificates"), certificate);
   await loadCertificatesCache();
@@ -1500,6 +1578,13 @@ window.mergeCoursesWithSaved = mergeCoursesWithSaved;
 window.getCourseCatalog = getCourseCatalog;
 window.getEnrollments = getEnrollments;
 window.saveEnrollments = saveEnrollments;
+window.getCourseAccessPayments = getCourseAccessPayments;
+window.saveCourseAccessPayments = saveCourseAccessPayments;
+window.hasPurchasedCourseAccess = hasPurchasedCourseAccess;
+window.markCourseAccessPaid = markCourseAccessPaid;
+window.canAccessCourse = canAccessCourse;
+window.canAccessCertificate = canAccessCertificate;
+window.courseRequiresPayment = courseRequiresPayment;
 window.updateHeaderAuthLink = updateHeaderAuthLink;
 window.normalizeCourseTitle = normalizeCourseTitle;
 window.showToast = showToast;
@@ -1529,7 +1614,28 @@ window.downloadCertificate = async (elementId, fileName) => {
       useCORS: true,
       allowTaint: true
     });
-    
+
+    if (window.jspdf && window.jspdf.jsPDF) {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const margin = 24;
+      const ratio = canvas.width / canvas.height;
+      let imgWidth = pdfWidth - margin * 2;
+      let imgHeight = imgWidth / ratio;
+      if (imgHeight > pdfHeight - margin * 2) {
+        imgHeight = pdfHeight - margin * 2;
+        imgWidth = imgHeight * ratio;
+      }
+      const x = (pdfWidth - imgWidth) / 2;
+      const y = (pdfHeight - imgHeight) / 2;
+      pdf.addImage(canvas.toDataURL("image/png"), "PNG", x, y, imgWidth, imgHeight);
+      pdf.save(`${fileName || "Certificate"}.pdf`);
+      showToast("Certificate downloaded successfully!", "success");
+      return;
+    }
+
     const link = document.createElement("a");
     link.href = canvas.toDataURL("image/png");
     link.download = `${fileName || "Certificate"}.png`;
@@ -2025,19 +2131,40 @@ if (page === "home") {
   };
 
   // Renders a verified certificate preview using the static cert.png design.
-  // Only the dynamic fields are positioned on top of the image.
+  // The user's actual name overlays on top of the image, replacing the template.
   const renderVerifiedCertificate = (record) => {
     result.innerHTML = "";
     result.style.color = "";
     if (!preview) return;
     const safeName = (record.name || 'Recipient Name').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const safeCourse = (record.course || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const safeDate = (record.date || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const safeCode = (record.code || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     preview.hidden = false;
     preview.innerHTML = `
       <div class="verified-certificate-wrapper">
         <div class="verified-certificate-card" id="verified-certificate-card">
           <img src="cert.png" alt="Verified certificate" class="verified-certificate-image" />
           <div class="verified-certificate-overlay">
-            <h2 class="verified-certificate-name">${safeName}</h2>
+          </div>
+        </div>
+
+        <div class="certificate-details">
+          <div class="certificate-detail-item">
+            <span class="detail-label">Recipient Name:</span>
+            <span class="detail-value">${safeName}</span>
+          </div>
+          <div class="certificate-detail-item">
+            <span class="detail-label">Course:</span>
+            <span class="detail-value">${safeCourse}</span>
+          </div>
+          <div class="certificate-detail-item">
+            <span class="detail-label">Date Issued:</span>
+            <span class="detail-value">${safeDate}</span>
+          </div>
+          <div class="certificate-detail-item">
+            <span class="detail-label">Certificate ID:</span>
+            <span class="detail-value" style="font-family: 'Courier New', monospace;">${safeCode}</span>
           </div>
         </div>
 
@@ -2072,10 +2199,20 @@ if (page === "home") {
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
 
-      const code = normalizeCertificateCode(document.getElementById("certificate-code").value);
+      const rawInput = document.getElementById("certificate-code").value;
+      const code = normalizeCertificateCode(rawInput);
+      
+      // Extract the certificate code part — handle cases where users copy "Certificate ID BHFXXX..." or similar
+      // First try to match at the end of the string (cleaner paste)
+      let codeMatch = code.match(/BHF[A-Z0-9]{13}$/);
+      // If not found at end, search anywhere in the string (handles extra text before/after)
+      if (!codeMatch) {
+        codeMatch = code.match(/BHF[A-Z0-9]{13}/);
+      }
+      const finalCode = codeMatch ? codeMatch[0] : code;
 
-      if (code.length !== 16) {
-        renderVerifyMessage("Please enter a valid 16-character certificate code.", false);
+      if (finalCode.length !== 16 || !finalCode.match(/^BHF[A-Z0-9]{13}$/)) {
+        renderVerifyMessage("Please enter a valid certificate code. It should be a 16-character code starting with BHF (example: BHFABCD1234XYZWV).", false);
         return;
       }
 
@@ -2087,7 +2224,7 @@ if (page === "home") {
         // Always look this up live against Firestore (not the local cache),
         // so a certificate issued on any device, moments ago, verifies
         // correctly here — this is the whole point of "verify from another device".
-        const record = await fetchCertificateByCode(code);
+        const record = await fetchCertificateByCode(finalCode);
         if (!record) {
           renderVerifyMessage("No matching certificate was found. Please contact the academy office.", false);
           return;
@@ -2230,7 +2367,40 @@ if (page === "programs") {
         }
       ];
 
-  const programCatalog = mergeCoursesWithSaved(defaultCourses);
+  const categoryImages = {
+    "Hospitality Management": "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=900&q=80",
+    "Information Technology": "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=900&q=80",
+    "Business & Management": "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=900&q=80",
+    "Professional Skills": "https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=900&q=80"
+  };
+
+  const ensureFreeStarterCourses = (courses) => {
+    const categories = Array.from(new Set(
+      [
+        ...(BHF_COURSES || []).map((course) => course.category).filter(Boolean),
+        ...getSavedCategories().map((category) => category.name).filter(Boolean)
+      ]
+    ));
+
+    const starters = categories.map((category) => {
+      const title = `${category} Foundations (Free)`;
+      const existing = courses.find((course) => normalizeCourseTitle(course.title) === normalizeCourseTitle(title));
+      if (existing) return null;
+      return {
+        title,
+        description: `A free beginner starter program for ${category.toLowerCase()} learners to explore core concepts before moving into deeper training.`,
+        level: "Beginner",
+        duration: "2 Weeks",
+        category,
+        img: categoryImages[category] || 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=600&q=80',
+        accessRule: "free"
+      };
+    }).filter(Boolean);
+
+    return [...courses, ...starters];
+  };
+
+  const programCatalog = mergeCoursesWithSaved(ensureFreeStarterCourses(defaultCourses));
 
   const grid = document.getElementById("courses-grid");
   const departmentsGrid = document.getElementById("departments");
@@ -2239,12 +2409,78 @@ if (page === "programs") {
   const countLabel = document.querySelector(".course-count");
   let activeCategory = null;
 
-  const categoryImages = {
-    "Hospitality Management": "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=900&q=80",
-    "Information Technology": "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=900&q=80",
-    "Business & Management": "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=900&q=80",
-    "Professional Skills": "https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=900&q=80"
+  // Handle pay-enroll button clicks in course grid
+  if (grid) {
+    grid.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-course-action="pay-enroll"]');
+      if (!button) return;
+      const name = button.getAttribute('data-course-title');
+      const category = button.getAttribute('data-course-category');
+      if (!name || !category) return;
+      
+      // Check if course is free
+      const course = programCatalog.find((c) => c.title === name);
+      const isFree = course && (course.accessRule === 'free' || (course.level && course.level.toLowerCase() === 'beginner'));
+      
+      if (isFree) {
+        // Free course: check auth and enroll
+        const auth = getAuth();
+        if (!auth || !auth.email) {
+          window.location.href = 'login.html';
+          return;
+        }
+        // Free course: enroll directly
+        if (typeof window.enrollCourse === 'function') {
+          window.enrollCourse(name, category);
+        } else {
+          // Fallback: save enrollment to localStorage
+          const enrollments = getEnrollments ? getEnrollments() : {};
+          const email = auth.email.toLowerCase();
+          const current = Array.isArray(enrollments[email]) ? enrollments[email] : [];
+          if (!current.includes(name)) {
+            current.push(name);
+            enrollments[email] = current;
+            localStorage.setItem(ENROLLMENT_STORE_KEY, JSON.stringify(enrollments));
+          }
+          window.location.href = `course-detail.html?course=${encodeURIComponent(name)}&category=${encodeURIComponent(category)}`;
+        }
+      } else {
+        // Paid course: open payment modal (no auth check here, only on confirm)
+        if (typeof window.openPaymentModal === 'function') {
+          window.openPaymentModal(name, category);
+        }
+      }
+    });
+  }
+
+  // Global handlers for onclick attributes
+  window.handlePayClick = (name, category) => {
+    if (typeof window.openPaymentModal === 'function') {
+      window.openPaymentModal(name, category);
+    }
   };
+
+  window.handleEnrollClick = (name, category) => {
+    const auth = getAuth();
+    if (!auth || !auth.email) {
+      window.location.href = 'login.html';
+      return;
+    }
+    if (typeof window.enrollCourse === 'function') {
+      window.enrollCourse(name, category);
+    } else {
+      const enrollments = getEnrollments ? getEnrollments() : {};
+      const email = auth.email.toLowerCase();
+      const current = Array.isArray(enrollments[email]) ? enrollments[email] : [];
+      if (!current.includes(name)) {
+        current.push(name);
+        enrollments[email] = current;
+        localStorage.setItem(ENROLLMENT_STORE_KEY, JSON.stringify(enrollments));
+      }
+      window.location.href = `course-detail.html?course=${encodeURIComponent(name)}&category=${encodeURIComponent(category)}`;
+    }
+  };
+
 
   const renderProgramsOverview = () => {
     // Merge default categories (from catalog) with saved categories managed by admin
@@ -2302,10 +2538,24 @@ if (page === "programs") {
       return matchesQuery && categoryMatches && matchesFilter;
     });
 
-    grid.innerHTML = filtered.length
-      ? filtered
+    const orderedCourses = [...filtered].sort((a, b) => {
+      const aPriority = a.accessRule === "free" ? 0 : 1;
+      const bPriority = b.accessRule === "free" ? 0 : 1;
+      return aPriority - bPriority;
+    });
+
+    grid.innerHTML = orderedCourses.length
+      ? orderedCourses
           .map(
-            (course) => `
+            (course) => {
+              const isFree = course.accessRule === 'free' || (course.level && course.level.toLowerCase() === 'beginner');
+              const buttonText = isFree ? 'Enroll Now →' : 'Pay to Enroll →';
+              const titleEscaped = (course.title || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+              const categoryEscaped = (course.category || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+              const onClickHandler = isFree 
+                ? `handleEnrollClick('${titleEscaped}', '${categoryEscaped}')`
+                : `handlePayClick('${titleEscaped}', '${categoryEscaped}')`;
+              return `
               <article class="course-card category-${(course.category || 'general').replace(/\s+/g, "-").replace(/[^a-zA-Z0-9-]/g, "").toLowerCase()}">
                 ${course.img ? `<img src="${course.img}" alt="${course.title}" class="course-card-image" />` : ''}
                 <div class="course-card-content">
@@ -2315,13 +2565,13 @@ if (page === "programs") {
                     <span class="pill">${course.category}</span>
                     <span class="pill">${course.level || 'Intermediate'}</span>
                     <span class="pill">${course.duration || '4 Weeks'}</span>
+                    <span class="pill ${course.accessRule === 'free' ? 'pill-active' : ''}">${course.accessRule === 'free' ? 'Free' : 'Paid'}</span>
                   </div>
-                  <a class="btn btn-primary" href="${auth ? `course-detail.html?course=${encodeURIComponent(course.title)}&category=${encodeURIComponent(course.category)}` : "login.html"}">
-                    ${auth ? "View Course" : "Login to Enroll"}
-                  </a>
+                  <button class="btn btn-primary" type="button" onclick="${onClickHandler}">${buttonText}</button>
                 </div>
               </article>
-            `
+            `;
+            }
           )
           .join("")
       : '<p class="form-note">No courses match your search yet.</p>';
@@ -2947,6 +3197,19 @@ if (page === "add-course") {
   const categoryInput = document.getElementById("course-category");
   const descriptionInput = document.getElementById("course-description");
   const imageInput = document.getElementById("course-image");
+  const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
+    if (!file) {
+      resolve("");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result?.toString() || "");
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+  const levelInput = document.getElementById("course-level");
+  const materialsFileInput = document.getElementById("course-materials-file");
+  const materialsUrlInput = document.getElementById("course-materials-url");
   const activeInput = document.getElementById("course-active");
   const validityInput = document.getElementById("course-validity-days");
   const examToggle = document.getElementById("course-exam-toggle");
@@ -3194,7 +3457,9 @@ if (page === "add-course") {
     categoryInput.value = savedCourse.category || 'Custom Programs';
     // Accept either `description` or legacy `desc` from defaults
     descriptionInput.value = savedCourse.description || savedCourse.desc || '';
+    if (levelInput) levelInput.value = savedCourse.level || 'Intermediate';
     imageInput.value = savedCourse.img || savedCourse.image || '';
+    if (materialsUrlInput) materialsUrlInput.value = savedCourse.materialsUrl || '';
     activeInput.checked = savedCourse.active ?? true;
     validityInput.value = savedCourse.validityDays || savedCourse.validity || 365;
     examToggle.checked = savedCourse.examEnabled ?? (Array.isArray(savedCourse.questions) ? savedCourse.questions.length > 0 : true);
@@ -3246,6 +3511,10 @@ if (page === "add-course") {
       setFormNote(courseNote, 'Please enter a valid image URL (http, https, or data).', 'error');
       return;
     }
+    const level = levelInput?.value || 'Intermediate';
+    const materialsUrl = materialsUrlInput?.value.trim() || '';
+    const materialsFile = materialsFileInput?.files?.[0] || null;
+    const materialsFileData = await readFileAsDataUrl(materialsFile);
     const active = activeInput?.checked ?? true;
     const validityDays = Number(validityInput?.value) || 365;
     const examEnabled = examToggle?.checked ?? false;
@@ -3265,8 +3534,11 @@ if (page === "add-course") {
       examEnabled,
       modules: getModuleData(),
       questions: examEnabled ? getQuestionData() : [],
-      level: 'Intermediate',
-      duration: '4 Weeks'
+      level,
+      duration: '4 Weeks',
+      materialsUrl: materialsUrl || (materialsFileData ? '' : undefined),
+      materialsFileData: materialsFileData || undefined,
+      accessRule: level === 'Beginner' ? 'free' : 'paid'
     };
 
     try {

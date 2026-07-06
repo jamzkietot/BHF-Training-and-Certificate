@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="style.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   </head>
   <body data-page="course-detail">
     <script>
@@ -48,6 +49,12 @@
 
         <h2>What you'll learn</h2>
         <ul id="course-outcomes" class="course-outcomes"></ul>
+
+        <div id="course-materials-panel" hidden>
+          <h2>Study materials</h2>
+          <p id="course-materials-note">Download the program materials and quizzes below.</p>
+          <a id="course-materials-link" class="btn btn-secondary" href="#" target="_blank" rel="noopener noreferrer">Open PDF</a>
+        </div>
 
         <p class="detail-note">
           This course includes <strong id="overview-module-count">0</strong> learning modules followed by a
@@ -122,7 +129,10 @@
           <div class="certificate-corner certificate-corner-tl"></div>
           <div class="certificate-corner certificate-corner-br"></div>
           <div class="certificate-frame"></div>
-          <div class="certificate-code-pill" id="certificate-code-display">Certificate ID</div>
+          <div class="certificate-code-pill" id="certificate-code-display">
+            <div style="font-size: 0.65em; opacity: 0.7; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Certificate Code</div>
+            <div id="certificate-code-text" style="font-family: 'Courier New', monospace; font-size: 0.9em; letter-spacing: 2px; font-weight: 700;">BHF0000000000000</div>
+          </div>
 
           <div class="certificate-inner">
             <div class="certificate-header">
@@ -171,6 +181,8 @@
                 </svg>
                 <p class="certificate-detail-label">Date Completed</p>
                 <p class="certificate-detail" id="certificate-date">Completion Date</p>
+                <p class="certificate-detail-label" style="margin-top: 0.85rem;">Valid Until</p>
+                <p class="certificate-detail" id="certificate-expiry">Expiry Date</p>
               </div>
 
               <div class="certificate-seal-column">
@@ -1576,7 +1588,24 @@
           outcomesList.style.display = 'none';
         }
       }
+
+      function renderMaterials() {
+        const panel = document.getElementById('course-materials-panel');
+        const link = document.getElementById('course-materials-link');
+        const note = document.getElementById('course-materials-note');
+        const materialsUrl = savedCourse?.materialsUrl || data.materialsUrl || '';
+        const materialsFileData = savedCourse?.materialsFileData || data.materialsFileData || '';
+        if (materialsUrl || materialsFileData) {
+          panel.hidden = false;
+          link.href = materialsUrl || materialsFileData;
+          link.textContent = materialsUrl ? 'Open PDF' : 'Open uploaded PDF';
+          note.textContent = materialsUrl ? 'Download the uploaded study materials and quizzes for this program.' : 'This program includes an uploaded PDF with study materials and quiz content.';
+        } else {
+          panel.hidden = true;
+        }
+      }
       renderOutcomes();
+      renderMaterials();
 
       const startBtn = document.getElementById('start-course-btn');
       function refreshStartButtonState() {
@@ -1584,8 +1613,11 @@
           startBtn.disabled = true;
           startBtn.textContent = "Content Coming Soon";
         } else {
-          startBtn.disabled = false;
-          startBtn.textContent = "Start Course";
+          const needsPayment = window.courseRequiresPayment ? window.courseRequiresPayment({ title: courseTitle, level: savedCourse?.level || 'Intermediate' }) : false;
+          const userEmail = window.getAuth ? window.getAuth()?.email : '';
+          const canAccess = !needsPayment || (userEmail && window.hasPurchasedCourseAccess && window.hasPurchasedCourseAccess(courseTitle, userEmail));
+          startBtn.disabled = !canAccess;
+          startBtn.textContent = canAccess ? "Start Course" : "Pay to Access";
         }
       }
       refreshStartButtonState();
@@ -1931,6 +1963,15 @@
 
       startBtn.addEventListener('click', () => {
         if (!isAuthored) return;
+        const userEmail = window.getAuth ? window.getAuth()?.email : '';
+        const needsPayment = window.courseRequiresPayment ? window.courseRequiresPayment({ title: courseTitle, level: savedCourse?.level || 'Intermediate' }) : false;
+        if (needsPayment && (!userEmail || !(window.hasPurchasedCourseAccess && window.hasPurchasedCourseAccess(courseTitle, userEmail)))) {
+          const confirmed = window.confirm('This program requires payment before you can start the course. Continue to payment?');
+          if (!confirmed) return;
+          if (window.markCourseAccessPaid) {
+            window.markCourseAccessPaid(courseTitle, userEmail || 'guest@example.com');
+          }
+        }
         renderModules();
         updateModuleProgress();
         showStage('modules');
@@ -2026,15 +2067,22 @@
       const certificateProgramDisplay = document.getElementById('certificate-program');
       const certificateSignatoryDisplay = document.getElementById('certificate-signatory');
       const certificateDateDisplay = document.getElementById('certificate-date');
+      const certificateExpiryDisplay = document.getElementById('certificate-expiry');
       const downloadCertBtn = document.getElementById('download-cert-btn');
       const returnDashboardBtn = document.getElementById('return-dashboard-btn');
 
       function showCertificate(certificate) {
-        certificateCodeDisplay.textContent = `Certificate ID ${certificate.code}`;
+        const codeDisplay = document.getElementById("certificate-code-display");
+        const codeText = document.getElementById("certificate-code-text");
+        if (codeDisplay && codeText) {
+          codeText.textContent = certificate.code;
+          codeDisplay.title = `Certificate ID: ${certificate.code} (Click to copy)`;
+        }
         certificateIdDisplay.textContent = certificate.code;
         certificateNameDisplay.textContent = certificate.name;
         certificateCourseDisplay.textContent = certificate.course;
         certificateDateDisplay.textContent = certificate.date;
+        certificateExpiryDisplay.textContent = certificate.expiryDate || 'Not set';
         if (window.applyCertificateTemplate) {
           window.applyCertificateTemplate();
         }
@@ -2043,7 +2091,8 @@
       }
 
       downloadCertBtn?.addEventListener('click', () => {
-        window.print();
+        const certName = (window.getAuth ? window.getAuth()?.displayName || window.getAuth()?.email || 'certificate' : 'certificate').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+        window.downloadCertificate('stage-certificate', `certificate-${certName}`);
       });
       returnDashboardBtn?.addEventListener('click', () => {
         window.location.href = 'dashboard.html';
@@ -2101,6 +2150,14 @@
               window.location.href = 'login.html';
               return;
             }
+            const needsPayment = window.courseRequiresPayment ? window.courseRequiresPayment({ title: courseTitle, level: savedCourse?.level || 'Intermediate' }) : false;
+            if (needsPayment && !(window.hasPurchasedCourseAccess && window.hasPurchasedCourseAccess(courseTitle, auth.email))) {
+              const confirmed = window.confirm('This certificate requires payment access. Continue to payment?');
+              if (!confirmed) return;
+              if (window.markCourseAccessPaid) {
+                window.markCourseAccessPaid(courseTitle, auth.email);
+              }
+            }
             if (!window.findUserCertificate || !window.createCertificateFor) {
               alert('Still loading your account details — please try again in a moment.');
               return;
@@ -2120,7 +2177,8 @@
                   course: courseTitle,
                   email: auth.email,
                   score: correctCount,
-                  total
+                  total,
+                  validityDays: savedCourse?.validityDays || 365
                 });
               }
               progress.certificate = certificate.code;
