@@ -2159,33 +2159,50 @@ if (page === "home") {
           </div>
         </div>
 
-        <div class="certificate-details">
-          <div class="certificate-detail-item">
-            <span class="detail-label">Recipient Name:</span>
-            <span class="detail-value">Juan Dela Cruz</span>
-          </div>
-          <div class="certificate-detail-item">
-            <span class="detail-label">Course:</span>
-            <span class="detail-value">${safeCourse}</span>
-          </div>
-          <div class="certificate-detail-item">
-            <span class="detail-label">Date Issued:</span>
-            <span class="detail-value">${safeDate}</span>
-          </div>
-          <div class="certificate-detail-item">
-            <span class="detail-label">Certificate ID:</span>
-            <span class="detail-value" style="font-family: 'Courier New', monospace;">${safeCode}</span>
-          </div>
-          <div class="certificate-detail-item">
-            <span class="detail-label">Expiry Date:</span>
-            <span class="detail-value">${safeExpiry}</span>
-          </div>
-        </div>
+        <div class="verified-certificate-info">
+          <div class="certificate-details">
+            <div class="certificate-verified-badge">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+              <span>Certificate Verified</span>
+            </div>
+            <div class="certificate-detail-item">
+              <span class="detail-label"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>Recipient Name</span>
+              <span class="detail-value detail-value--name">${safeName}</span>
+            </div>
+            <div class="certificate-detail-item">
+              <span class="detail-label"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>Course</span>
+              <span class="detail-value">${safeCourse}</span>
+            </div>
+            <div class="certificate-detail-row">
+              <div class="certificate-detail-item">
+                <span class="detail-label"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4"></path><path d="M8 2v4"></path><path d="M3 10h18"></path></svg>Date Issued</span>
+                <span class="detail-value">${safeDate}</span>
+              </div>
+              <div class="certificate-detail-item">
+                <span class="detail-label"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>Expiry Date</span>
+                <span class="detail-value">${safeExpiry}</span>
+              </div>
+            </div>
+            <div class="certificate-detail-item">
+              <span class="detail-label"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h16"></path><path d="M4 15h16"></path><path d="M10 3 8 21"></path><path d="M16 3l-2 18"></path></svg>Certificate ID</span>
+              <span class="detail-value detail-value--code">${safeCode}</span>
+            </div>
 
-        <div class="certificate-actions">
-          <button class="btn btn-secondary" onclick="backToVerify()">← Back to Verify</button>
-          <button class="btn btn-primary" onclick="downloadCertificate('verified-certificate-card', '${safeName.replace(/'/g, "\\'")}')">Download Certificate</button>
-          <button class="btn btn-secondary" onclick="printCertificate('verified-certificate-card')">Print Certificate</button>
+            <div class="verified-certificate-actions">
+              <button class="btn btn-secondary certificate-btn-back" onclick="backToVerify()">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><path d="m12 19-7-7 7-7"></path></svg>
+                Back to Verify
+              </button>
+              <button class="btn btn-primary certificate-btn-download" onclick="downloadCertificate('verified-certificate-card', '${safeName.replace(/'/g, "\\'")}')">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="M7 10l5 5 5-5"></path><path d="M12 15V3"></path></svg>
+                Download Certificate
+              </button>
+              <button class="btn btn-secondary certificate-btn-print" onclick="printCertificate('verified-certificate-card')">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><path d="M6 14h12v8H6z"></path></svg>
+                Print Certificate
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     `;
