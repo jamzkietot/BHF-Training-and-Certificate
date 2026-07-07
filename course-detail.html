@@ -13,6 +13,47 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   </head>
   <body data-page="course-detail">
+    <div class="payment-modal" id="paymentModal" hidden>
+        <div class="payment-modal-backdrop"></div>
+        <div class="payment-modal-body">
+            <div class="payment-modal-header">
+                <div>
+                    <h2 id="paymentModalTitle">Course Payment</h2>
+                    <p class="payment-modal-subtitle">Choose one of the payment options below to unlock the course.</p>
+                </div>
+                <button class="close-modal-btn" type="button" aria-label="Close payment modal">✕</button>
+            </div>
+            <p id="paymentModalCourseInfo" class="payment-modal-copy">Complete payment to enroll in this course.</p>
+            <div class="payment-options">
+                <article class="payment-option">
+                    <h3>GCash</h3>
+                    <p><strong>Account name:</strong> BHF Academy</p>
+                    <p><strong>Number:</strong> 0917 123 4567</p>
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=GCash%20BHF%20Academy%2009171234567" alt="GCash QR code" />
+                    <button type="button" class="btn btn-primary payment-app-btn" id="gcashOpenBtn">Pay with GCash</button>
+                </article>
+                <article class="payment-option">
+                    <h3>Bank Transfer</h3>
+                    <p><strong>Bank:</strong> BDO</p>
+                    <p><strong>Account Name:</strong> BHF Academy</p>
+                    <p><strong>Account No.:</strong> 0123 4567 890</p>
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=BDO%20BHF%20Academy%2001234567890" alt="Bank transfer QR code" />
+                </article>
+                <article class="payment-option">
+                    <h3>QR Payments</h3>
+                    <p>Scan either QR code with your banking or digital wallet app.</p>
+                    <div class="payment-qr-grid">
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=GCash%20BHF%20Academy" alt="GCash QR" />
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=BDO%20BHF%20Academy" alt="Bank QR" />
+                    </div>
+                </article>
+            </div>
+            <div class="payment-actions">
+                <button class="btn btn-primary" id="confirmPaymentBtn">I have paid, continue</button>
+                <button class="btn btn-secondary" id="cancelPaymentBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
     <script>
       if (new URLSearchParams(window.location.search).get('view') === 'certificate') {
         document.body.classList.add('certificate-only');
@@ -1534,6 +1575,14 @@
       const params = new URLSearchParams(window.location.search);
       const courseTitle = params.get('course') || 'Course';
       const savedCourse = typeof findSavedCourse === 'function' ? findSavedCourse(courseTitle) : null;
+      // savedCourse only reflects Firestore-managed course data. Built-in
+      // catalog courses (like free intro courses) may not have a Firestore
+      // record at all, so fall back to the static catalog for access rules.
+      const catalogCourse = (window.BHF_COURSES || []).find(
+        (c) => (c.title || '').trim().toLowerCase() === courseTitle.trim().toLowerCase()
+      ) || null;
+      const effectiveCourseLevel = savedCourse?.level || catalogCourse?.level || 'Intermediate';
+      const effectiveCourseAccessRule = savedCourse?.accessRule || catalogCourse?.accessRule;
       const courseCategory = savedCourse?.category || params.get('category') || 'BHF Certification Academy';
 
       const data = savedCourse
@@ -1613,7 +1662,7 @@
           startBtn.disabled = true;
           startBtn.textContent = "Content Coming Soon";
         } else {
-          const needsPayment = window.courseRequiresPayment ? window.courseRequiresPayment({ title: courseTitle, level: savedCourse?.level || 'Intermediate' }) : false;
+          const needsPayment = window.courseRequiresPayment ? window.courseRequiresPayment({ title: courseTitle, level: effectiveCourseLevel, accessRule: effectiveCourseAccessRule }) : false;
           const userEmail = window.getAuth ? window.getAuth()?.email : '';
           const canAccess = !needsPayment || (userEmail && window.hasPurchasedCourseAccess && window.hasPurchasedCourseAccess(courseTitle, userEmail));
           startBtn.disabled = !canAccess;
@@ -1621,6 +1670,90 @@
         }
       }
       refreshStartButtonState();
+
+      /* ---------- Payment modal (GCash / bank transfer) ---------- */
+      let pendingPaymentCallback = null;
+
+      function openCoursePaymentModal(title, category, onConfirm) {
+        const modal = document.getElementById('paymentModal');
+        if (!modal) {
+          // No modal available for some reason — don't block the user.
+          if (onConfirm) onConfirm();
+          return;
+        }
+        const modalTitle = document.getElementById('paymentModalTitle');
+        const courseInfo = document.getElementById('paymentModalCourseInfo');
+        if (modalTitle) modalTitle.textContent = `Payment for ${title}`;
+        if (courseInfo) courseInfo.textContent = `Complete payment for ${title} to unlock this course.`;
+        modal.dataset.courseTitle = title;
+        modal.dataset.courseCategory = category || '';
+        pendingPaymentCallback = onConfirm;
+        modal.hidden = false;
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeCoursePaymentModal() {
+        const modal = document.getElementById('paymentModal');
+        if (!modal) return;
+        modal.hidden = true;
+        document.body.style.overflow = 'auto';
+        pendingPaymentCallback = null;
+      }
+
+      function confirmCoursePayment() {
+        const modal = document.getElementById('paymentModal');
+        if (!modal) return;
+        const userEmail = window.getAuth ? window.getAuth()?.email : '';
+        if (!userEmail) {
+          window.location.href = 'login.html';
+          return;
+        }
+        const paidTitle = modal.dataset.courseTitle;
+        if (paidTitle && window.markCourseAccessPaid) {
+          window.markCourseAccessPaid(paidTitle, userEmail);
+        }
+        const callback = pendingPaymentCallback;
+        closeCoursePaymentModal();
+        refreshStartButtonState();
+        if (typeof callback === 'function') callback();
+      }
+
+      (function initCoursePaymentModal() {
+        const modal = document.getElementById('paymentModal');
+        if (!modal) return;
+        const confirmBtn = document.getElementById('confirmPaymentBtn');
+        const cancelBtn = document.getElementById('cancelPaymentBtn');
+        const closeBtn = modal.querySelector('.close-modal-btn');
+        const gcashBtn = document.getElementById('gcashOpenBtn');
+        confirmBtn?.addEventListener('click', confirmCoursePayment);
+        cancelBtn?.addEventListener('click', closeCoursePaymentModal);
+        closeBtn?.addEventListener('click', closeCoursePaymentModal);
+        modal.addEventListener('click', (event) => {
+          if (event.target === modal) closeCoursePaymentModal();
+        });
+        gcashBtn?.addEventListener('click', (event) => {
+          event.preventDefault();
+          openGCashApp();
+        });
+      })();
+
+      // Tries to hand off to the GCash app via its deep link. If the app
+      // isn't installed (or this is opened on desktop), the deep link just
+      // fails silently, so we fall back to the GCash website after a short
+      // delay in case the app never took over the page.
+      function openGCashApp() {
+        const amount = '';
+        const gcashDeepLink = `gcash://com.mynt.gcash/send?mobile=09171234567${amount}`;
+        const gcashWebFallback = 'https://www.gcash.com/';
+        let handedOff = false;
+        window.addEventListener('blur', () => { handedOff = true; }, { once: true });
+        window.location.href = gcashDeepLink;
+        setTimeout(() => {
+          if (!handedOff) {
+            window.open(gcashWebFallback, '_blank');
+          }
+        }, 1200);
+      }
 
       /* ---------- Progress storage ---------- */
       const slug = courseTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-');
@@ -1964,17 +2097,21 @@
       startBtn.addEventListener('click', () => {
         if (!isAuthored) return;
         const userEmail = window.getAuth ? window.getAuth()?.email : '';
-        const needsPayment = window.courseRequiresPayment ? window.courseRequiresPayment({ title: courseTitle, level: savedCourse?.level || 'Intermediate' }) : false;
+        const needsPayment = window.courseRequiresPayment ? window.courseRequiresPayment({ title: courseTitle, level: effectiveCourseLevel, accessRule: effectiveCourseAccessRule }) : false;
+        const proceedToCourse = () => {
+          renderModules();
+          updateModuleProgress();
+          showStage('modules');
+        };
         if (needsPayment && (!userEmail || !(window.hasPurchasedCourseAccess && window.hasPurchasedCourseAccess(courseTitle, userEmail)))) {
-          const confirmed = window.confirm('This program requires payment before you can start the course. Continue to payment?');
-          if (!confirmed) return;
-          if (window.markCourseAccessPaid) {
-            window.markCourseAccessPaid(courseTitle, userEmail || 'guest@example.com');
+          if (!userEmail) {
+            window.location.href = 'login.html';
+            return;
           }
+          openCoursePaymentModal(courseTitle, courseCategory, proceedToCourse);
+          return;
         }
-        renderModules();
-        updateModuleProgress();
-        showStage('modules');
+        proceedToCourse();
       });
 
       function continueToExam() {
@@ -2082,7 +2219,16 @@
         certificateNameDisplay.textContent = certificate.name;
         certificateCourseDisplay.textContent = certificate.course;
         certificateDateDisplay.textContent = certificate.date;
-        certificateExpiryDisplay.textContent = certificate.expiryDate || 'Not set';
+        let expiryLabel = certificate.expiryDate;
+        if (!expiryLabel) {
+          const issued = certificate.issuedAt ? new Date(certificate.issuedAt) : new Date(certificate.date);
+          if (!isNaN(issued.getTime())) {
+            const fallbackExpiry = new Date(issued);
+            fallbackExpiry.setDate(fallbackExpiry.getDate() + 365);
+            expiryLabel = fallbackExpiry.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+          }
+        }
+        certificateExpiryDisplay.textContent = expiryLabel || 'Not set';
         if (window.applyCertificateTemplate) {
           window.applyCertificateTemplate();
         }
@@ -2150,47 +2296,49 @@
               window.location.href = 'login.html';
               return;
             }
-            const needsPayment = window.courseRequiresPayment ? window.courseRequiresPayment({ title: courseTitle, level: savedCourse?.level || 'Intermediate' }) : false;
-            if (needsPayment && !(window.hasPurchasedCourseAccess && window.hasPurchasedCourseAccess(courseTitle, auth.email))) {
-              const confirmed = window.confirm('This certificate requires payment access. Continue to payment?');
-              if (!confirmed) return;
-              if (window.markCourseAccessPaid) {
-                window.markCourseAccessPaid(courseTitle, auth.email);
+
+            const loadCertificate = async () => {
+              if (!window.findUserCertificate || !window.createCertificateFor) {
+                alert('Still loading your account details — please try again in a moment.');
+                return;
               }
-            }
-            if (!window.findUserCertificate || !window.createCertificateFor) {
-              alert('Still loading your account details — please try again in a moment.');
+
+              const originalText = viewCertBtn.textContent;
+              viewCertBtn.disabled = true;
+              viewCertBtn.textContent = 'Loading…';
+              try {
+                if (window.certificatesReadyPromise) {
+                  await window.certificatesReadyPromise;
+                }
+                let certificate = window.findUserCertificate(auth.email, courseTitle);
+                if (!certificate) {
+                  certificate = await window.createCertificateFor({
+                    name: auth.name || 'Learner',
+                    course: courseTitle,
+                    email: auth.email,
+                    score: correctCount,
+                    total,
+                    validityDays: savedCourse?.validityDays || 365
+                  });
+                }
+                progress.certificate = certificate.code;
+                saveProgress(progress);
+                showCertificate(certificate);
+              } catch (error) {
+                console.error('Failed to load/save certificate', error);
+                alert('We had trouble loading your certificate. Please try again.');
+              } finally {
+                viewCertBtn.disabled = false;
+                viewCertBtn.textContent = originalText;
+              }
+            };
+
+            const needsPayment = window.courseRequiresPayment ? window.courseRequiresPayment({ title: courseTitle, level: effectiveCourseLevel, accessRule: effectiveCourseAccessRule }) : false;
+            if (needsPayment && !(window.hasPurchasedCourseAccess && window.hasPurchasedCourseAccess(courseTitle, auth.email))) {
+              openCoursePaymentModal(courseTitle, courseCategory, () => { loadCertificate(); });
               return;
             }
-
-            const originalText = viewCertBtn.textContent;
-            viewCertBtn.disabled = true;
-            viewCertBtn.textContent = 'Loading…';
-            try {
-              if (window.certificatesReadyPromise) {
-                await window.certificatesReadyPromise;
-              }
-              let certificate = window.findUserCertificate(auth.email, courseTitle);
-              if (!certificate) {
-                certificate = await window.createCertificateFor({
-                  name: auth.name || 'Learner',
-                  course: courseTitle,
-                  email: auth.email,
-                  score: correctCount,
-                  total,
-                  validityDays: savedCourse?.validityDays || 365
-                });
-              }
-              progress.certificate = certificate.code;
-              saveProgress(progress);
-              showCertificate(certificate);
-            } catch (error) {
-              console.error('Failed to load/save certificate', error);
-              alert('We had trouble loading your certificate. Please try again.');
-            } finally {
-              viewCertBtn.disabled = false;
-              viewCertBtn.textContent = originalText;
-            }
+            await loadCertificate();
           });
           actions.appendChild(viewCertBtn);
 

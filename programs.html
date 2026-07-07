@@ -132,6 +132,7 @@
                         <p><strong>Account name:</strong> BHF Academy</p>
                         <p><strong>Number:</strong> 0917 123 4567</p>
                         <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=GCash%20BHF%20Academy%2009171234567" alt="GCash QR code" />
+                        <button type="button" class="btn btn-primary payment-app-btn" id="gcashOpenBtn">Pay with GCash</button>
                     </article>
                     <article class="payment-option">
                         <h3>Bank Transfer</h3>
@@ -1083,6 +1084,7 @@
             const confirmButton = document.getElementById('confirmPaymentBtn');
             const cancelButton = document.getElementById('cancelPaymentBtn');
             const paymentClose = paymentModal?.querySelector('.close-modal-btn');
+            const gcashButton = document.getElementById('gcashOpenBtn');
 
             if (confirmButton) {
                 confirmButton.addEventListener('click', confirmPayment);
@@ -1092,6 +1094,12 @@
             }
             if (paymentClose) {
                 paymentClose.addEventListener('click', closePaymentModal);
+            }
+            if (gcashButton) {
+                gcashButton.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    openGCashApp();
+                });
             }
 
             if (paymentModal) {
@@ -1138,6 +1146,23 @@
             if (!modal) return;
             modal.hidden = true;
             document.body.style.overflow = 'auto';
+        }
+
+        // Tries to hand off to the GCash app via its deep link. If the app
+        // isn't installed (or this is opened on desktop), the deep link just
+        // fails silently, so we fall back to the GCash website after a short
+        // delay in case the app never took over the page.
+        function openGCashApp() {
+            const gcashDeepLink = 'gcash://com.mynt.gcash/send?mobile=09171234567';
+            const gcashWebFallback = 'https://www.gcash.com/';
+            let handedOff = false;
+            window.addEventListener('blur', () => { handedOff = true; }, { once: true });
+            window.location.href = gcashDeepLink;
+            setTimeout(() => {
+                if (!handedOff) {
+                    window.open(gcashWebFallback, '_blank');
+                }
+            }, 1200);
         }
 
         function confirmPayment() {

@@ -565,8 +565,9 @@ img {
 ============================================= */
 .topbar {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
+  gap: 3rem;
   padding: 1rem 5vw;
   background: var(--accent-dark);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -741,6 +742,16 @@ main {
   content: " 🔒";
   font-size: 0.9rem;
   margin-left: 0.25rem;
+  position: static;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  top: auto;
+  height: auto;
+  width: auto;
+  background: none;
+  transition: none;
+  display: inline;
 }
 
 /* Floating admin edit toggle button */
@@ -1061,7 +1072,7 @@ body.certificate-only .dashboard-shell {
   min-height: calc(100vh - 180px);
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   scroll-margin-top: 140px;
 }
 
@@ -1076,7 +1087,7 @@ body.certificate-only .dashboard-shell {
 
 .verified-certificate-wrapper {
   width: 100%;
-  max-width: 1160px;
+  max-width: 640px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1086,7 +1097,8 @@ body.certificate-only .dashboard-shell {
 .verified-certificate-card {
   position: relative;
   width: 100%;
-  max-width: 1080px;
+  max-width: 640px;
+  max-height: 62vh;
   border-radius: 28px;
   overflow: hidden;
   box-shadow: 0 30px 80px rgba(15, 34, 72, 0.18);
@@ -1095,27 +1107,13 @@ body.certificate-only .dashboard-shell {
 .verified-certificate-image {
   width: 100%;
   height: auto;
+  max-height: 62vh;
+  object-fit: contain;
   display: block;
 }
 
 .verified-certificate-overlay {
-  position: absolute;
-  left: 50%;
-  top: 43%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: auto;
-  height: auto;
-  background: transparent;
-  border-radius: 0;
-  padding: 0;
-  box-shadow: none;
-  pointer-events: none;
-  z-index: 3;
-  overflow: visible;
-  opacity: 1;
+  display: none;
 }
 
 .verified-certificate-name-panel {
@@ -1141,7 +1139,7 @@ body.certificate-only .dashboard-shell {
 
 .verified-certificate-name {
   font-family: "Dancing Script", cursive;
-  font-size: clamp(3rem, 7vw, 5.5rem);
+  font-size: clamp(1.6rem, 4.2vw, 2.8rem);
   font-weight: 700;
   line-height: 1.05;
   margin: 0;
@@ -3384,6 +3382,152 @@ body[data-page="admin"] #bhf-admin-edit-toggle {
 
 .course-card .btn {
   margin-top: auto;
+}
+
+/* ---------- Payment modal (GCash / bank transfer) ---------- */
+.payment-modal {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 1300;
+}
+
+.payment-modal[hidden] {
+  display: none !important;
+}
+
+.payment-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(12, 22, 48, 0.65);
+  backdrop-filter: blur(6px);
+}
+
+.payment-modal-body {
+  position: relative;
+  width: min(720px, calc(100% - 2rem));
+  max-height: min(90vh, 800px);
+  overflow-y: auto;
+  background: rgba(255, 255, 255, 0.98);
+  border-radius: 28px;
+  padding: 1.75rem;
+  box-shadow: 0 30px 80px rgba(15, 34, 72, 0.18);
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.payment-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.payment-modal-header h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  color: var(--accent-dark);
+}
+
+.payment-modal-subtitle {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.payment-modal-copy {
+  margin: 0;
+  color: var(--accent-dark);
+  font-size: 0.95rem;
+}
+
+.payment-modal-body .close-modal-btn {
+  background: transparent;
+  border: 1px solid rgba(15, 34, 72, 0.18);
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  font-size: 1rem;
+  color: var(--accent-dark);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.payment-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.payment-option {
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 1rem;
+  text-align: center;
+  background: #f8fafc;
+}
+
+.payment-option h3 {
+  margin: 0 0 0.5rem;
+  color: var(--accent-dark);
+  font-size: 1.05rem;
+}
+
+.payment-option p {
+  margin: 0.2rem 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.payment-option img {
+  margin-top: 0.65rem;
+  width: 120px;
+  height: 120px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.payment-app-btn {
+  display: block;
+  margin: 0.85rem auto 0;
+  width: 100%;
+}
+
+.payment-qr-grid {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 0.65rem;
+}
+
+.payment-qr-grid img {
+  width: 90px;
+  height: 90px;
+  margin-top: 0;
+}
+
+.payment-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .payment-modal-body {
+    padding: 1.25rem;
+  }
+
+  .payment-actions {
+    flex-direction: column-reverse;
+  }
+
+  .payment-actions .btn {
+    width: 100%;
+  }
 }
 
 .toast {

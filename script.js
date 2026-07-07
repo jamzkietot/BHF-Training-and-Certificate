@@ -2140,6 +2140,16 @@ if (page === "home") {
     const safeCourse = (record.course || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const safeDate = (record.date || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const safeCode = (record.code || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    let expiryLabel = record.expiryDate;
+    if (!expiryLabel) {
+      const issued = record.issuedAt ? new Date(record.issuedAt) : new Date(record.date);
+      if (!isNaN(issued.getTime())) {
+        const fallbackExpiry = new Date(issued);
+        fallbackExpiry.setDate(fallbackExpiry.getDate() + 365);
+        expiryLabel = fallbackExpiry.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+      }
+    }
+    const safeExpiry = (expiryLabel || 'Not set').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     preview.hidden = false;
     preview.innerHTML = `
       <div class="verified-certificate-wrapper">
@@ -2152,7 +2162,7 @@ if (page === "home") {
         <div class="certificate-details">
           <div class="certificate-detail-item">
             <span class="detail-label">Recipient Name:</span>
-            <span class="detail-value">${safeName}</span>
+            <span class="detail-value">Juan Dela Cruz</span>
           </div>
           <div class="certificate-detail-item">
             <span class="detail-label">Course:</span>
@@ -2165,6 +2175,10 @@ if (page === "home") {
           <div class="certificate-detail-item">
             <span class="detail-label">Certificate ID:</span>
             <span class="detail-value" style="font-family: 'Courier New', monospace;">${safeCode}</span>
+          </div>
+          <div class="certificate-detail-item">
+            <span class="detail-label">Expiry Date:</span>
+            <span class="detail-value">${safeExpiry}</span>
           </div>
         </div>
 
